@@ -21,7 +21,7 @@ Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
 
 | Login Page | Dashboard | Core Feature |
 | :---: | :---: | :---: |
-| ![Login](assets/login.png) | ![Dash](assets/dash.png) | ![Feature](assets/feature.png) |
+| ![Login](https://github.com/NazalDev/impal-tubes/blob/44a96f1597df053ec713b88551f8057a71231b98/Login-1.png) | ![Dash](https://github.com/NazalDev/impal-tubes/blob/44a96f1597df053ec713b88551f8057a71231b98/Page%20Awal.png) | ![Feature](https://github.com/NazalDev/impal-tubes/blob/44a96f1597df053ec713b88551f8057a71231b98/Form%20Post%20kegiatan.png) |
 
 ---
 
