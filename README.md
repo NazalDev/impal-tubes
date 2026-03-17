@@ -8,6 +8,7 @@
 
 ### DFD Level 0
 ![DFD Level 0](https://github.com/NazalDev/impal-tubes/blob/2630f202d1fac0b8b4b7b754adfba43c68833092/DFD%200.drawio.png)
+*Diagram Konteks yang menunjukkan aliran data global.*
 
 ### DFD Level 1
 ![DFD Level 1](https://github.com/NazalDev/impal-tubes/blob/2630f202d1fac0b8b4b7b754adfba43c68833092/DFD%201.drawio.png)
@@ -25,9 +26,9 @@ Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
 ---
 
 ## 🛠️ Stack Teknologi
-- **Frontend:** Next.js / Java Swing
-- **Backend:** Node.js / Java 
-- **Database:** PostgreSQL / MySQL
+- **Frontend:** Dart / Flutter
+- **Backend:** Php 
+- **Database:** MySQL
 
 ---
 
