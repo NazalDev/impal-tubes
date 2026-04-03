@@ -28,7 +28,7 @@ Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
 ## 🛠️ Stack Teknologi
 - **Frontend:** Dart / Flutter
 - **Backend:** Java/Spring Boot 
-- **Database:** MySQL
+- **Database:** PostgreSQL
 
 ---
 
