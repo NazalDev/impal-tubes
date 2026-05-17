@@ -175,7 +175,7 @@ class EventCard extends StatelessWidget {
 
             // ── postDisc preview strip ──────────────────────────
             PostDiscPreview(
-              eventId: event.id.toString(), // ← fixed: was event.userId
+              eventId: event.id,
               getpostDiscsUseCase: getpostDiscsUseCase,
               getRepliesUseCase: getRepliesUseCase,
             ),

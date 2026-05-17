@@ -12,12 +12,12 @@ class ReplyPostDiscModel extends ReplyPostDiscEntity {
   });
 
   factory ReplyPostDiscModel.fromMap(Map<String, dynamic> map) {
-    final user = map['users'] as Map<String, dynamic>?;
+    final user = map['user'] as Map<String, dynamic>?;
 
     return ReplyPostDiscModel(
-      id: map['id'] as String,
-      postId: map['post_id'] as String,
-      userId: map['user_id'] as String,
+      id: map['id'].toString(),
+      postId: map['post_id'].toString(),
+      userId: map['user_id'].toString(),
       body: map['body'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       userName: user?['username'] as String? ?? 'Anonim',

@@ -8,7 +8,7 @@ import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart'
 /// Preview strip shown at the bottom of each event card.
 /// Shows the most recent postDisc and a tap-to-expand action.
 class PostDiscPreview extends StatefulWidget {
-  final String eventId;
+  final int eventId;
   final GetPostDiscsUseCase getpostDiscsUseCase;
   final GetRepliesUseCase getRepliesUseCase;
 
@@ -126,7 +126,7 @@ class _PostDiscPreviewState extends State<PostDiscPreview> {
 // ── Full postDisc sheet ────────────────────────────────────────────────────────
 
 class _PostDiscSheet extends StatefulWidget {
-  final String eventId;
+  final int eventId;
   final GetPostDiscsUseCase getpostDiscsUseCase;
   final GetRepliesUseCase getRepliesUseCase;
 
@@ -228,7 +228,7 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         itemCount: _postDiscs.length + (_hasMore ? 1 : 0),
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           if (index == _postDiscs.length) {
                             return _loading

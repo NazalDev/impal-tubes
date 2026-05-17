@@ -16,7 +16,7 @@ abstract class EventRemoteDataSource {
   Future<void> registerEvent(int eventId, String userId);
 
   Future<List<PostDiscModel>> getComments({
-    required String eventId,
+    required int eventId,
     int limit,
     int offset,
   });
@@ -91,7 +91,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   // DISCUSCCION
   @override
   Future<List<PostDiscModel>> getComments({
-    required String eventId,
+    required int eventId,
     int limit = 5,
     int offset = 0,
   }) async {
@@ -108,7 +108,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         .eq('event_id', eventId)
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
-
     return response.map((row) => PostDiscModel.fromMap(row)).toList();
   }
 

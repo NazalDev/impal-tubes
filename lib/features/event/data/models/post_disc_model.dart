@@ -12,12 +12,12 @@ class PostDiscModel extends PostDiscEntity {
   });
 
   factory PostDiscModel.fromMap(Map<String, dynamic> map) {
-    final user = map['users'] as Map<String, dynamic>?;
+    final user = map['user'] as Map<String, dynamic>?;
 
     return PostDiscModel(
-      id: map['id'] as String,
-      eventId: map['event_id'] as String,
-      userId: map['user_id'] as String,
+      id: map['id'].toString(),
+      eventId: map['event_id'].toString(),
+      userId: map['user_id'].toString(),
       userName: user?['username'] as String? ?? 'Anonim',
       userAvatarUrl: user?['avatar_url'] as String?,
       content: map['content'] as String,

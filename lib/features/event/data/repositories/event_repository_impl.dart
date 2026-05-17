@@ -58,7 +58,7 @@ class PostDiscRepositoryImpl implements PostDiscRepository {
 
   @override
   Future<List<PostDiscEntity>> getComments({
-    required String eventId,
+    required int eventId,
     int limit = 5,
     int offset = 0,
   }) {

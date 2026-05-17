@@ -8,7 +8,7 @@ class GetPostDiscsUseCase {
   GetPostDiscsUseCase(this.repository);
 
   Future<List<PostDiscEntity>> call({
-    required String eventId,
+    required int eventId,
     int limit = 5,
     int offset = 0,
   }) {
