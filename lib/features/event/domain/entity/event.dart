@@ -1,4 +1,5 @@
 class EventEntity {
+  final int id;
   final String userId;
   final String title;
   final String description;
@@ -21,5 +22,6 @@ class EventEntity {
     this.createdAt,
     this.updatedAt,
     this.imageUrl,
+    required this.id,
   });
 }

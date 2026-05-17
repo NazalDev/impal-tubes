@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
 
-import 'package:volync/features/event/event_injector.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/event/presentation/widgets/event_card.dart';
+import 'package:volync/init_dependencies.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<EventBloc>().add(LoadEvents(reset: true));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Provide the BLoC to the subtree
-    return BlocProvider(
-      create: (_) => EventInjector.eventBloc()..add(LoadEvents(reset: true)),
-      child: const _HomeView(),
-    );
+    return const _HomeView();
   }
 }
 
@@ -161,8 +169,10 @@ class _HomeViewState extends State<_HomeView> {
 
                         return EventCard(
                           event: state.events[index],
-                          getRepliesUseCase: EventInjector.getRepliesUseCase,
-                          getpostDiscsUseCase: EventInjector.getCommentsUseCase,
+                          getRepliesUseCase:
+                              serviceLocator<GetRepliesUseCase>(),
+                          getpostDiscsUseCase:
+                              serviceLocator<GetPostDiscsUseCase>(),
                         );
                       },
                     );

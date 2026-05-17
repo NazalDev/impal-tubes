@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
+import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
 
 part 'event_state.dart';
 part 'event_event.dart';
@@ -10,16 +11,41 @@ part 'event_event.dart';
 class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
   final GetEventsUseCase getEventsUseCase;
   final CreateEventUseCase createEventUseCase;
+  final RegistEventUsecase registerEventUseCase;
 
   static const int _pageSize = 10;
   int _offset = 0;
 
-  EventBloc({required this.getEventsUseCase, required this.createEventUseCase})
-    : super(EventInitial()) {
+  EventBloc({
+    required this.getEventsUseCase,
+    required this.createEventUseCase,
+    required this.registerEventUseCase,
+  }) : super(EventInitial()) {
     on<LoadEvents>(_onLoadEvents);
     on<SearchEvents>(_onSearchEvents);
     on<FilterEvents>(_onFilterEvents);
     on<CreateEvent>(_onCreateEvent);
+    on<RegisterEvent>(_onRegisterEvent);
+    on<ResetEventState>(_onResetState);
+  }
+
+  Future<void> _onResetState(
+    ResetEventState event,
+    Emitter<EventBlocState> emit,
+  ) async {
+    // Re-emit EventLoaded if we have events, otherwise EventInitial
+    // This clears any stale create/register states
+    final current = state;
+    if (current is EventLoaded) {
+      emit(
+        EventLoaded(
+          events: current.events,
+          hasMore: current.hasMore,
+          activeFilter: current.activeFilter,
+          searchQuery: current.searchQuery,
+        ),
+      );
+    }
   }
 
   Future<void> _onLoadEvents(
@@ -112,6 +138,19 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     } catch (e) {
       emit(EventCreateError(_parseError(e)));
       print(e);
+    }
+  }
+
+  Future<void> _onRegisterEvent(
+    RegisterEvent event,
+    Emitter<EventBlocState> emit,
+  ) async {
+    emit(EventRegistering());
+    try {
+      await registerEventUseCase(eventId: event.eventId, userId: event.userId);
+      emit(EventRegistered());
+    } catch (e) {
+      emit(EventRegisterError(_parseError(e)));
     }
   }
 }

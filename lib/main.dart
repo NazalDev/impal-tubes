@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -12,6 +14,18 @@ import 'package:volync/init_dependencies.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('FLUTTER ERROR: ${details.exception}');
+    print('STACK TRACE: ${details.stack}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    print('PLATFORM ERROR: $error');
+    print('STACK: $stack');
+    return true; // ← returning true prevents the crash in debug too
+  };
+
   await initDependencies();
   await initializeDateFormatting('id_ID');
 
@@ -21,7 +35,7 @@ void main() async {
         BlocProvider(create: (_) => serviceLocator<AppUserCubit>()),
         BlocProvider(create: (_) => serviceLocator<AuthBloc>()),
         BlocProvider(create: (_) => serviceLocator<EventBloc>()),
-        BlocProvider(create: (_) => serviceLocator<ProfileBloc>()), // ← added
+        BlocProvider(create: (_) => serviceLocator<ProfileBloc>()),
       ],
       child: const MyApp(),
     ),

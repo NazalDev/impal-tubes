@@ -20,8 +20,8 @@ class ProfileEventModel extends ProfileEventEntity {
 
   factory ProfileEventModel.fromMap(Map<String, dynamic> map) {
     return ProfileEventModel(
-      id: map['id'] as String,
-      userId: map['user_id'] as String,
+      id: _safeStringCast(map['id']),
+      userId: _safeStringCast(map['user_id']),
       title: map['title'] as String,
       description: map['description'] as String,
       location: map['location'] as String,
@@ -37,6 +37,12 @@ class ProfileEventModel extends ProfileEventEntity {
       imageUrl: map['image_url'] as String?,
       memberCount: map['member_count'] as int?,
     );
+  }
+
+  static String _safeStringCast(dynamic value) {
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    return value?.toString() ?? '';
   }
 
   Map<String, dynamic> toMap() => {

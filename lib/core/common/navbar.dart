@@ -86,19 +86,19 @@ class _NavigationBarCustomState extends State<NavigationBarCustom> {
               title: const Text('Post Event'),
               leading: const Icon(Icons.post_add),
               onTap: () {
+                _scaffoldKey.currentState?.closeEndDrawer();
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => PostEventPage()),
                 );
-                _scaffoldKey.currentState?.closeEndDrawer();
               },
             ),
             ListTile(
               title: const Text('Post Forum'),
               leading: const Icon(Icons.forum),
               onTap: () {
-                // open forum post form
                 _scaffoldKey.currentState?.closeEndDrawer();
+                // open forum post form
               },
             ),
           ],

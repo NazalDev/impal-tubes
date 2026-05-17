@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
+import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 
 class EventDetailSheet extends StatelessWidget {
   final EventEntity event;
 
   const EventDetailSheet({super.key, required this.event});
-
-  static void show(BuildContext context, EventEntity event) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EventDetailSheet(event: event),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +26,8 @@ class EventDetailSheet extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // drag handle
               const _DragHandle(),
 
-              // scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -56,7 +48,6 @@ class EventDetailSheet extends StatelessWidget {
                         const SizedBox(height: 16),
                       ],
 
-                      // Status chip
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -77,7 +68,6 @@ class EventDetailSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
 
-                      // Title
                       Text(
                         event.title,
                         style: const TextStyle(
@@ -87,7 +77,6 @@ class EventDetailSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      // Info rows
                       _InfoRow(
                         icon: Icons.location_on_outlined,
                         text: event.location,
@@ -104,7 +93,6 @@ class EventDetailSheet extends StatelessWidget {
                       ),
                       const Divider(height: 32),
 
-                      // Description
                       const Text(
                         'Tentang Event',
                         style: TextStyle(
@@ -127,7 +115,6 @@ class EventDetailSheet extends StatelessWidget {
                 ),
               ),
 
-              // ── Daftar button pinned at bottom ──────────────────
               _DaftarBottomBar(event: event),
             ],
           ),
@@ -182,45 +169,99 @@ class _DaftarBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        12,
-        24,
-        12 + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.black12)),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: () {
-            // TODO: implement registration logic
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Mendaftar ke ${event.title}...'),
-                backgroundColor: Colors.teal,
+    return BlocListener<EventBloc, EventBlocState>(
+      listenWhen: (_, current) =>
+          current is EventRegistering ||
+          current is EventRegistered ||
+          current is EventRegisterError,
+      listener: (context, state) {
+        if (state is EventRegistered) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Berhasil mendaftar ke ${event.title}!'),
+              backgroundColor: Colors.teal,
+            ),
+          );
+        } else if (state is EventRegisterError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red[700],
+            ),
+          );
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          12,
+          24,
+          12 + MediaQuery.of(context).padding.bottom,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.black12)),
+        ),
+        child: BlocBuilder<EventBloc, EventBlocState>(
+          buildWhen: (_, current) =>
+              current is EventRegistering ||
+              current is EventRegistered ||
+              current is EventRegisterError ||
+              current is EventLoaded ||
+              current is EventInitial,
+          builder: (context, state) {
+            final isLoading = state is EventRegistering;
+            final user = Supabase.instance.client.auth.currentUser;
+
+            return SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        if (user == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Sesi berakhir, silakan login kembali.',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        context.read<EventBloc>().add(
+                          RegisterEvent(eventId: event.id, userId: user.id),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Daftar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             );
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: const Text(
-            'Daftar',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ),
       ),
     );

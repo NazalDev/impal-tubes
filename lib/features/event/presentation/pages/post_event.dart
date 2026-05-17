@@ -153,6 +153,7 @@ class _PostEventPageState extends State<PostEventPage> {
       endAt: eventDate,
       createdAt: now,
       updatedAt: now,
+      id: 0,
     );
 
     // Dispatch to BLoC — no Supabase calls in the page

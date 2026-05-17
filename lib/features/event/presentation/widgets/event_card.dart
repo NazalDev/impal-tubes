@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
-
+import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/event/presentation/widgets/event_detail_sheet.dart';
 import 'package:volync/features/event/presentation/widgets/post_disc_section.dart';
 
@@ -23,7 +24,7 @@ class EventCard extends StatelessWidget {
     final formatter = DateFormat('d MMM yyyy, HH:mm', 'id_ID');
 
     return InkWell(
-      onTap: () => EventDetailSheet.show(context, event),
+      onTap: () => _openDetail(context),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
@@ -142,11 +143,12 @@ class EventCard extends StatelessWidget {
                             child: Image.network(
                               event.imageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  _DaftarButton(event: event),
+                              errorBuilder: (_, __, ___) => _DaftarButton(
+                                onTap: () => _openDetail(context),
+                              ),
                             ),
                           )
-                        : _DaftarButton(event: event),
+                        : _DaftarButton(onTap: () => _openDetail(context)),
                   ),
                 ],
               ),
@@ -154,7 +156,7 @@ class EventCard extends StatelessWidget {
 
             // ── postDisc preview strip ──────────────────────────
             PostDiscPreview(
-              eventId: event.userId, // replace with event.id when available
+              eventId: event.id.toString(), // ← fixed: was event.userId
               getpostDiscsUseCase: getpostDiscsUseCase,
               getRepliesUseCase: getRepliesUseCase,
             ),
@@ -163,17 +165,34 @@ class EventCard extends StatelessWidget {
       ),
     );
   }
+
+  // Centralized open detail — context here always has EventBloc from the list
+  void _openDetail(BuildContext context) {
+    final bloc = context.read<EventBloc>();
+
+    bloc.add(ResetEventState());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider.value(
+        value: bloc,
+        child: EventDetailSheet(event: event),
+      ),
+    );
+  }
 }
 
 class _DaftarButton extends StatelessWidget {
-  final EventEntity event;
+  final VoidCallback onTap;
 
-  const _DaftarButton({required this.event});
+  const _DaftarButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () => EventDetailSheet.show(context, event),
+      onPressed: onTap, // ← uses the callback instead of reading context
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.teal,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

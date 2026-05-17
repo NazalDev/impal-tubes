@@ -40,8 +40,14 @@ class EventRepositoryImpl implements EventRepository {
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
       imageUrl: event.imageUrl,
+      id: 0,
     );
     return remoteDataSource.createEvent(model);
+  }
+
+  @override
+  Future<void> registerEvent(int eventId, String userId) {
+    return remoteDataSource.registerEvent(eventId, userId);
   }
 }
 

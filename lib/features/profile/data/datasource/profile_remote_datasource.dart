@@ -89,7 +89,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           .from('registration')
           .select('''
             *,
-            users (
+            user (
               id,
               username,
               email,

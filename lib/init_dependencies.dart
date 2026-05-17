@@ -12,8 +12,11 @@ import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:volync/features/event/data/datasource/event_remote_datasource.dart';
 import 'package:volync/features/event/data/repositories/event_repository_impl.dart';
 import 'package:volync/features/event/domain/repository/event_repository.dart';
+import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
+import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
+import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/profile/profile_injector.dart';
 
@@ -66,13 +69,21 @@ void _initEvent() {
     () => EventRepositoryImpl(serviceLocator()),
   );
 
+  serviceLocator.registerFactory<PostDiscRepository>(
+    () => PostDiscRepositoryImpl(serviceLocator()),
+  );
+
   serviceLocator.registerFactory(() => GetEventsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => CreateEventUseCase(serviceLocator()));
+  serviceLocator.registerFactory(() => RegistEventUsecase(serviceLocator()));
+  serviceLocator.registerFactory(() => GetPostDiscsUseCase(serviceLocator()));
+  serviceLocator.registerFactory(() => GetRepliesUseCase(serviceLocator()));
 
   serviceLocator.registerLazySingleton(
     () => EventBloc(
       getEventsUseCase: serviceLocator(),
       createEventUseCase: serviceLocator(),
+      registerEventUseCase: serviceLocator(),
     ),
   );
 }

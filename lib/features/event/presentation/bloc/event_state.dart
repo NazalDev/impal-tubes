@@ -48,3 +48,15 @@ class EventCreateError extends EventBlocState {
   final String message;
   EventCreateError(this.message);
 }
+
+//REGISTERATION
+class EventRegistering extends EventBlocState {}
+
+class EventRegistered extends EventBlocState {}
+
+class EventRegisterError extends EventBlocState {
+  final String message;
+  EventRegisterError(this.message);
+}
+
+class ResetEventState extends EventBlocEvent {}

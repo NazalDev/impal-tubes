@@ -9,4 +9,5 @@ abstract class EventRepository {
   });
 
   Future<void> createEvent(EventEntity event);
+  Future<void> registerEvent(int eventId, String userId);
 }

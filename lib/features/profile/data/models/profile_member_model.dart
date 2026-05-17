@@ -16,9 +16,9 @@ class ProfileMemberModel extends ProfileMemberEntity {
     // Supabase join: registration row with embedded user row
     final user = map['users'] as Map<String, dynamic>? ?? {};
     return ProfileMemberModel(
-      id: map['id'] as String,
-      eventId: map['event_id'] as String,
-      userId: map['user_id'] as String,
+      id: _safeStringCast(map['id']),
+      eventId: _safeStringCast(map['event_id']),
+      userId: _safeStringCast(map['user_id']),
       username: user['username'] as String? ?? '',
       email: user['email'] as String? ?? '',
       avatarUrl: user['avatar_url'] as String? ?? 'default',
@@ -27,5 +27,11 @@ class ProfileMemberModel extends ProfileMemberEntity {
           ? DateTime.parse(map['registered_at'] as String)
           : null,
     );
+  }
+
+  static String _safeStringCast(dynamic value) {
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    return value?.toString() ?? '';
   }
 }

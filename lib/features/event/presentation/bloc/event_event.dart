@@ -27,3 +27,9 @@ class CreateEvent extends EventBlocEvent {
   final EventEntity event;
   CreateEvent(this.event);
 }
+
+class RegisterEvent extends EventBlocEvent {
+  final int eventId;
+  final String userId;
+  RegisterEvent({required this.eventId, required this.userId});
+}
