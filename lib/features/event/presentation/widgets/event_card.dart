@@ -143,9 +143,28 @@ class EventCard extends StatelessWidget {
                             child: Image.network(
                               event.imageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _DaftarButton(
-                                onTap: () => _openDetail(context),
-                              ),
+                              errorBuilder: (context, error, stackTrace) {
+                                print('CARD IMAGE ERROR: $error');
+                                return _DaftarButton(
+                                  onTap: () => _openDetail(context),
+                                );
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.teal,
+                                        ),
+                                      ),
+                                    );
+                                  },
                             ),
                           )
                         : _DaftarButton(onTap: () => _openDetail(context)),

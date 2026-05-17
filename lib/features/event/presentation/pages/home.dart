@@ -36,7 +36,13 @@ class _HomeView extends StatefulWidget {
 class _HomeViewState extends State<_HomeView> {
   final _searchController = TextEditingController();
 
-  static const _filters = ['Semua', 'Seminar', 'Penggalangan Dana', 'Konser'];
+  static const _filters = [
+    'Semua',
+    'Seminar',
+    'Penggalangan Dana',
+    'Olahraga',
+    'Lingkungan',
+  ];
 
   @override
   void dispose() {
@@ -71,7 +77,7 @@ class _HomeViewState extends State<_HomeView> {
                   color: Colors.black38,
                   size: 28,
                 ),
-                hintText: 'Cari Event Kampus...',
+                hintText: 'Cari Event...',
                 hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
                 filled: true,
                 fillColor: Colors.white,
