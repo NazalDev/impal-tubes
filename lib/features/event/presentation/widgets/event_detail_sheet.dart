@@ -3,12 +3,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
+import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
+import 'package:volync/features/event/presentation/widgets/post_disc_section.dart';
 
 class EventDetailSheet extends StatelessWidget {
   final EventEntity event;
+  final GetPostDiscsUseCase getpostDiscsUseCase;
+  final GetRepliesUseCase getRepliesUseCase;
+  final PostCommentUseCase postCommentUseCase;
+  final PostReplyUseCase postReplyUseCase;
 
-  const EventDetailSheet({super.key, required this.event});
+  const EventDetailSheet({
+    super.key,
+    required this.event,
+    required this.getpostDiscsUseCase,
+    required this.getRepliesUseCase,
+    required this.postCommentUseCase,
+    required this.postReplyUseCase,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +153,24 @@ class EventDetailSheet extends StatelessWidget {
                           color: Colors.black87,
                           height: 1.6,
                         ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // ── Discussion / Comments section ──────────
+                      const Text(
+                        'Diskusi',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      PostDiscPreview(
+                        eventId: event.id,
+                        getpostDiscsUseCase: getpostDiscsUseCase,
+                        getRepliesUseCase: getRepliesUseCase,
+                        postCommentUseCase: postCommentUseCase,
+                        postReplyUseCase: postReplyUseCase,
                       ),
                       const SizedBox(height: 24),
                     ],

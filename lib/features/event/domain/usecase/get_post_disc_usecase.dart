@@ -29,3 +29,29 @@ class GetRepliesUseCase {
     return repository.getReplies(parentCommentId: parentCommentId);
   }
 }
+
+class PostCommentUseCase {
+  final PostDiscRepository repository;
+  PostCommentUseCase(this.repository);
+
+  Future<PostDiscEntity> call({
+    required int eventId,
+    required String userId,
+    required String body,
+  }) {
+    return repository.postComment(eventId: eventId, userId: userId, body: body);
+  }
+}
+
+class PostReplyUseCase {
+  final PostDiscRepository repository;
+  PostReplyUseCase(this.repository);
+
+  Future<ReplyPostDiscEntity> call({
+    required String postId,
+    required String userId,
+    required String body,
+  }) {
+    return repository.postReply(postId: postId, userId: userId, body: body);
+  }
+}

@@ -75,4 +75,30 @@ class PostDiscRepositoryImpl implements PostDiscRepository {
   }) {
     return remoteDataSource.getReplies(parentCommentId: parentCommentId);
   }
+
+  @override
+  Future<PostDiscEntity> postComment({
+    required int eventId,
+    required String userId,
+    required String body,
+  }) {
+    return remoteDataSource.postComment(
+      eventId: eventId,
+      userId: userId,
+      body: body,
+    );
+  }
+
+  @override
+  Future<ReplyPostDiscEntity> postReply({
+    required String postId,
+    required String userId,
+    required String body,
+  }) {
+    return remoteDataSource.postReply(
+      postId: postId,
+      userId: userId,
+      body: body,
+    );
+  }
 }

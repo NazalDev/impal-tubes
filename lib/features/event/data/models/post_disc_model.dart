@@ -7,7 +7,7 @@ class PostDiscModel extends PostDiscEntity {
     required super.userId,
     required super.userName,
     super.userAvatarUrl,
-    required super.content,
+    required super.body,
     required super.createdAt,
   });
 
@@ -20,7 +20,7 @@ class PostDiscModel extends PostDiscEntity {
       userId: map['user_id'].toString(),
       userName: user?['username'] as String? ?? 'Anonim',
       userAvatarUrl: user?['avatar_url'] as String?,
-      content: map['content'] as String,
+      body: map['body'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }

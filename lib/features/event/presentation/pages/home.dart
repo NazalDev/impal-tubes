@@ -179,6 +179,10 @@ class _HomeViewState extends State<_HomeView> {
                               serviceLocator<GetRepliesUseCase>(),
                           getpostDiscsUseCase:
                               serviceLocator<GetPostDiscsUseCase>(),
+                          postCommentUseCase:
+                              serviceLocator<PostCommentUseCase>(),
+                          postReplyUseCase:
+                              serviceLocator<PostReplyUseCase>(),
                         );
                       },
                     );

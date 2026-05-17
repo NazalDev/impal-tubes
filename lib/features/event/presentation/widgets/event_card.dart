@@ -11,12 +11,16 @@ class EventCard extends StatelessWidget {
   final EventEntity event;
   final GetPostDiscsUseCase getpostDiscsUseCase;
   final GetRepliesUseCase getRepliesUseCase;
+  final PostCommentUseCase postCommentUseCase;
+  final PostReplyUseCase postReplyUseCase;
 
   const EventCard({
     super.key,
     required this.event,
     required this.getpostDiscsUseCase,
     required this.getRepliesUseCase,
+    required this.postCommentUseCase,
+    required this.postReplyUseCase,
   });
 
   @override
@@ -178,6 +182,8 @@ class EventCard extends StatelessWidget {
               eventId: event.id,
               getpostDiscsUseCase: getpostDiscsUseCase,
               getRepliesUseCase: getRepliesUseCase,
+              postCommentUseCase: postCommentUseCase,
+              postReplyUseCase: postReplyUseCase,
             ),
           ],
         ),
@@ -197,7 +203,13 @@ class EventCard extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => BlocProvider.value(
         value: bloc,
-        child: EventDetailSheet(event: event),
+        child: EventDetailSheet(
+            event: event,
+            getpostDiscsUseCase: getpostDiscsUseCase,
+            getRepliesUseCase: getRepliesUseCase,
+            postCommentUseCase: postCommentUseCase,
+            postReplyUseCase: postReplyUseCase,
+          ),
       ),
     );
   }

@@ -4,7 +4,7 @@ class PostDiscEntity {
   final String userId;
   final String userName;
   final String? userAvatarUrl;
-  final String content;
+  final String body;
   final DateTime createdAt;
 
   const PostDiscEntity({
@@ -13,7 +13,7 @@ class PostDiscEntity {
     required this.userId,
     required this.userName,
     this.userAvatarUrl,
-    required this.content,
+    required this.body,
     required this.createdAt,
   });
 }

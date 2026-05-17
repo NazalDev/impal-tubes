@@ -15,8 +15,7 @@ import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
-import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
-import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
+import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/profile/profile_injector.dart';
 
@@ -78,6 +77,8 @@ void _initEvent() {
   serviceLocator.registerFactory(() => RegistEventUsecase(serviceLocator()));
   serviceLocator.registerFactory(() => GetPostDiscsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => GetRepliesUseCase(serviceLocator()));
+  serviceLocator.registerFactory(() => PostCommentUseCase(serviceLocator()));
+  serviceLocator.registerFactory(() => PostReplyUseCase(serviceLocator()));
 
   serviceLocator.registerLazySingleton(
     () => EventBloc(

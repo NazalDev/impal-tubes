@@ -11,4 +11,16 @@ abstract class PostDiscRepository {
   Future<List<ReplyPostDiscEntity>> getReplies({
     required String parentCommentId,
   });
+
+  Future<PostDiscEntity> postComment({
+    required int eventId,
+    required String userId,
+    required String body,
+  });
+
+  Future<ReplyPostDiscEntity> postReply({
+    required String postId,
+    required String userId,
+    required String body,
+  });
 }

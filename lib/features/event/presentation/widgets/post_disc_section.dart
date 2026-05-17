@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:volync/features/event/domain/entity/post_disc.dart';
 import 'package:volync/features/event/domain/entity/reply_post_disc.dart';
@@ -11,12 +12,16 @@ class PostDiscPreview extends StatefulWidget {
   final int eventId;
   final GetPostDiscsUseCase getpostDiscsUseCase;
   final GetRepliesUseCase getRepliesUseCase;
+  final PostCommentUseCase postCommentUseCase;
+  final PostReplyUseCase postReplyUseCase;
 
   const PostDiscPreview({
     super.key,
     required this.eventId,
     required this.getpostDiscsUseCase,
     required this.getRepliesUseCase,
+    required this.postCommentUseCase,
+    required this.postReplyUseCase,
   });
 
   @override
@@ -45,7 +50,8 @@ class _PostDiscPreviewState extends State<PostDiscPreview> {
           _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('PostDiscPreview._fetchLatest error: $e\n$st');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -92,7 +98,7 @@ class _PostDiscPreviewState extends State<PostDiscPreview> {
                             ),
                           ),
                           TextSpan(
-                            text: _latestpostDisc!.content,
+                            text: _latestpostDisc!.body,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.black54,
@@ -118,6 +124,11 @@ class _PostDiscPreviewState extends State<PostDiscPreview> {
         eventId: widget.eventId,
         getpostDiscsUseCase: widget.getpostDiscsUseCase,
         getRepliesUseCase: widget.getRepliesUseCase,
+        postCommentUseCase: widget.postCommentUseCase,
+        postReplyUseCase: widget.postReplyUseCase,
+        onNewComment: (newComment) {
+          setState(() => _latestpostDisc = newComment);
+        },
       ),
     );
   }
@@ -129,11 +140,17 @@ class _PostDiscSheet extends StatefulWidget {
   final int eventId;
   final GetPostDiscsUseCase getpostDiscsUseCase;
   final GetRepliesUseCase getRepliesUseCase;
+  final PostCommentUseCase postCommentUseCase;
+  final PostReplyUseCase postReplyUseCase;
+  final void Function(PostDiscEntity)? onNewComment;
 
   const _PostDiscSheet({
     required this.eventId,
     required this.getpostDiscsUseCase,
     required this.getRepliesUseCase,
+    required this.postCommentUseCase,
+    required this.postReplyUseCase,
+    this.onNewComment,
   });
 
   @override
@@ -147,16 +164,24 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
   int _offset = 0;
   static const int _pageSize = 10;
 
+  final _commentController = TextEditingController();
+  bool _posting = false;
+
   @override
   void initState() {
     super.initState();
     _loadMore();
   }
 
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadMore() async {
     if (!_hasMore) return;
     setState(() => _loading = true);
-
     try {
       final fetched = await widget.getpostDiscsUseCase(
         eventId: widget.eventId,
@@ -169,8 +194,56 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
         _hasMore = fetched.length == _pageSize;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('_PostDiscSheet._loadMore error: $e\n$st');
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submitComment() async {
+    final body = _commentController.text.trim();
+    if (body.isEmpty) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi berakhir, silakan login kembali.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _posting = true);
+    try {
+      debugPrint(
+        'postComment: calling usecase eventId=${widget.eventId} userId=${user.id}',
+      );
+      final newComment = await widget.postCommentUseCase(
+        eventId: widget.eventId,
+        userId: user.id,
+        body: body,
+      );
+      debugPrint('postComment: success id=${newComment.id}');
+      _commentController.clear();
+      setState(() {
+        _postDiscs.insert(0, newComment);
+        _offset += 1;
+        _posting = false;
+      });
+      widget.onNewComment?.call(newComment);
+    } catch (e, st) {
+      debugPrint('postComment error: $e\n$st');
+      setState(() => _posting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim komentar: $e'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
     }
   }
 
@@ -251,9 +324,74 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
                           return _PostDiscTile(
                             postDisc: _postDiscs[index],
                             getRepliesUseCase: widget.getRepliesUseCase,
+                            postReplyUseCase: widget.postReplyUseCase,
                           );
                         },
                       ),
+              ),
+
+              // ── Comment input bar ──────────────────────────────
+              Container(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  8 + MediaQuery.of(context).padding.bottom,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.black12)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        minLines: 1,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Tulis komentar...',
+                          hintStyle: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black38,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _posting
+                        ? const SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.teal,
+                              ),
+                            ),
+                          )
+                        : IconButton(
+                            onPressed: _submitComment,
+                            icon: const Icon(Icons.send_rounded),
+                            color: Colors.teal,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.teal.withAlpha(20),
+                            ),
+                          ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -268,10 +406,12 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
 class _PostDiscTile extends StatefulWidget {
   final PostDiscEntity postDisc;
   final GetRepliesUseCase getRepliesUseCase;
+  final PostReplyUseCase postReplyUseCase;
 
   const _PostDiscTile({
     required this.postDisc,
     required this.getRepliesUseCase,
+    required this.postReplyUseCase,
   });
 
   @override
@@ -282,8 +422,17 @@ class _PostDiscTileState extends State<_PostDiscTile> {
   List<ReplyPostDiscEntity> _replies = [];
   bool _showReplies = false;
   bool _loadingReplies = false;
+  bool _showReplyInput = false;
+  bool _postingReply = false;
+  final _replyController = TextEditingController();
 
   final _timeFormat = DateFormat('d MMM, HH:mm', 'id_ID');
+
+  @override
+  void dispose() {
+    _replyController.dispose();
+    super.dispose();
+  }
 
   Future<void> _toggleReplies() async {
     if (_showReplies) {
@@ -306,6 +455,48 @@ class _PostDiscTileState extends State<_PostDiscTile> {
       }
     } else {
       setState(() => _showReplies = true);
+    }
+  }
+
+  Future<void> _submitReply() async {
+    final body = _replyController.text.trim();
+    if (body.isEmpty) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi berakhir, silakan login kembali.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _postingReply = true);
+    try {
+      final newReply = await widget.postReplyUseCase(
+        postId: widget.postDisc.id,
+        userId: user.id,
+        body: body,
+      );
+      _replyController.clear();
+      setState(() {
+        _replies.add(newReply);
+        _showReplies = true;
+        _showReplyInput = false;
+        _postingReply = false;
+      });
+    } catch (e) {
+      setState(() => _postingReply = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim balasan: $e'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
     }
   }
 
@@ -363,34 +554,115 @@ class _PostDiscTileState extends State<_PostDiscTile> {
 
           // postDisc content
           Text(
-            widget.postDisc.content,
+            widget.postDisc.body,
             style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 6),
 
-          // Reply toggle
-          GestureDetector(
-            onTap: _toggleReplies,
-            child: _loadingReplies
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.teal,
-                    ),
-                  )
-                : Text(
-                    _showReplies ? 'Sembunyikan balasan' : 'Lihat balasan',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.teal[700],
-                      fontWeight: FontWeight.w600,
-                    ),
+          // Action row
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _toggleReplies,
+                child: _loadingReplies
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.teal,
+                        ),
+                      )
+                    : Text(
+                        _showReplies
+                            ? 'Sembunyikan balasan'
+                            : _replies.isNotEmpty
+                            ? 'Lihat ${_replies.length} balasan'
+                            : 'Lihat balasan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.teal[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () => setState(() => _showReplyInput = !_showReplyInput),
+                child: Text(
+                  'Balas',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+              ),
+            ],
           ),
 
-          // Replies
+          // Inline reply input
+          if (_showReplyInput) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _replyController,
+                      autofocus: true,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'Tulis balasan...',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black38,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _postingReply
+                      ? const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.teal,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: _submitReply,
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          color: Colors.teal,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ],
+
+          // Replies list
           if (_showReplies && _replies.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 28, top: 8),
