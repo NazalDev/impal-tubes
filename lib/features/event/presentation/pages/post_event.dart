@@ -5,6 +5,22 @@ import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 
 // ─────────────────────────────────────────────
+// Genre list — add new genres here easily
+// ─────────────────────────────────────────────
+const List<String> kEventGenres = [
+  'Seminar',
+  'Penggalangan Dana',
+  'Olahraga',
+  'Lingkungan',
+  'Seni & Budaya',
+  'Pendidikan',
+  'Sosial',
+  'Kesehatan',
+  'Teknologi',
+  'Lainnya',
+];
+
+// ─────────────────────────────────────────────
 // Validation helpers  (pure Dart, no framework)
 // ─────────────────────────────────────────────
 class _Validators {
@@ -50,6 +66,28 @@ class _Validators {
     return null;
   }
 
+  static String? hour(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Isi jam.';
+    final h = int.tryParse(value.trim());
+    if (h == null || h < 0 || h > 23) return 'Jam tidak valid (0–23).';
+    return null;
+  }
+
+  static String? minute(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Isi menit.';
+    final m = int.tryParse(value.trim());
+    if (m == null || m < 0 || m > 59) return 'Menit tidak valid (0–59).';
+    return null;
+  }
+
+  static String? durationDays(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Isi durasi.';
+    final d = int.tryParse(value.trim());
+    if (d == null || d < 1) return 'Durasi minimal 1 hari.';
+    if (d > 30) return 'Durasi maksimal 30 hari.';
+    return null;
+  }
+
   static String? dateCombo(String day, String month, String year) {
     final d = int.tryParse(day.trim());
     final m = int.tryParse(month.trim());
@@ -72,9 +110,6 @@ class _Validators {
 // Page
 // ─────────────────────────────────────────────
 
-/// Requires [EventBloc] to already be in the widget tree (provided by the
-/// parent page / router). It reuses the same BLoC as the event list so that
-/// after a successful create the list can be refreshed automatically.
 class PostEventPage extends StatefulWidget {
   const PostEventPage({super.key});
 
@@ -90,10 +125,18 @@ class _PostEventPageState extends State<PostEventPage> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _quotaController = TextEditingController();
-  final _dayController = TextEditingController();
-  final _monthController = TextEditingController();
-  final _yearController = TextEditingController();
 
+  // Start date/time
+  final _startDayController = TextEditingController();
+  final _startMonthController = TextEditingController();
+  final _startYearController = TextEditingController();
+  final _startHourController = TextEditingController();
+  final _startMinuteController = TextEditingController();
+
+  // Duration in days
+  final _durationDaysController = TextEditingController();
+
+  String? _selectedGenre;
   bool _agreedToTerms = false;
   bool _termsError = false;
   bool _hasAttemptedSubmit = false;
@@ -106,9 +149,12 @@ class _PostEventPageState extends State<PostEventPage> {
     _descriptionController.dispose();
     _locationController.dispose();
     _quotaController.dispose();
-    _dayController.dispose();
-    _monthController.dispose();
-    _yearController.dispose();
+    _startDayController.dispose();
+    _startMonthController.dispose();
+    _startYearController.dispose();
+    _startHourController.dispose();
+    _startMinuteController.dispose();
+    _durationDaysController.dispose();
     super.dispose();
   }
 
@@ -118,14 +164,14 @@ class _PostEventPageState extends State<PostEventPage> {
       _hasAttemptedSubmit = true;
       _termsError = !_agreedToTerms;
       _dateComboError = _Validators.dateCombo(
-        _dayController.text,
-        _monthController.text,
-        _yearController.text,
+        _startDayController.text,
+        _startMonthController.text,
+        _startYearController.text,
       );
     });
 
     final formValid = _formKey.currentState?.validate() ?? false;
-    if (!formValid || _termsError || _dateComboError != null) {
+    if (!formValid || _termsError || _dateComboError != null || _selectedGenre == null) {
       _showErrorSnackbar('Harap perbaiki kesalahan pada form terlebih dahulu.');
       return;
     }
@@ -136,10 +182,15 @@ class _PostEventPageState extends State<PostEventPage> {
       return;
     }
 
-    final day = int.parse(_dayController.text.trim());
-    final month = int.parse(_monthController.text.trim());
-    final year = int.parse(_yearController.text.trim());
-    final eventDate = DateTime(year, month, day);
+    final day = int.parse(_startDayController.text.trim());
+    final month = int.parse(_startMonthController.text.trim());
+    final year = int.parse(_startYearController.text.trim());
+    final hour = int.tryParse(_startHourController.text.trim()) ?? 0;
+    final minute = int.tryParse(_startMinuteController.text.trim()) ?? 0;
+    final durationDays = int.parse(_durationDaysController.text.trim());
+
+    final startAt = DateTime(year, month, day, hour, minute);
+    final endAt = startAt.add(Duration(days: durationDays));
     final now = DateTime.now();
 
     final event = EventEntity(
@@ -149,21 +200,20 @@ class _PostEventPageState extends State<PostEventPage> {
           '${_orgNameController.text.trim()}\n${_descriptionController.text.trim()}',
       location: _locationController.text.trim(),
       status: 'published',
-      startAt: eventDate,
-      endAt: eventDate,
+      startAt: startAt,
+      endAt: endAt,
       createdAt: now,
       updatedAt: now,
       id: 0,
+      genre: _selectedGenre,
     );
 
-    // Dispatch to BLoC — no Supabase calls in the page
     context.read<EventBloc>().add(CreateEvent(event));
   }
 
   // ── BLoC listener ────────────────────────────
   void _onBlocState(BuildContext context, EventBlocState state) {
     if (state is EventCreated) {
-      // Refresh the event list in the background
       context.read<EventBloc>().add(LoadEvents(reset: true));
       _showSuccessDialog();
     } else if (state is EventCreateError) {
@@ -286,7 +336,7 @@ class _PostEventPageState extends State<PostEventPage> {
     );
   }
 
-  Widget _buildLabel(String label) {
+  Widget _buildLabel(String label, {bool required = true}) {
     return RichText(
       text: TextSpan(
         text: label,
@@ -295,11 +345,12 @@ class _PostEventPageState extends State<PostEventPage> {
           fontWeight: FontWeight.w600,
           color: Colors.black87,
         ),
-        children: const [
-          TextSpan(
-            text: ' *',
-            style: TextStyle(color: Colors.red),
-          ),
+        children: [
+          if (required)
+            const TextSpan(
+              text: ' *',
+              style: TextStyle(color: Colors.red),
+            ),
         ],
       ),
     );
@@ -308,16 +359,68 @@ class _PostEventPageState extends State<PostEventPage> {
   AutovalidateMode get _autovalidate =>
       _hasAttemptedSubmit ? AutovalidateMode.always : AutovalidateMode.disabled;
 
-  Widget _buildDateField() {
+  // ── Genre dropdown ───────────────────────────
+  Widget _buildGenreDropdown() {
+    final hasError = _hasAttemptedSubmit && _selectedGenre == null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: hasError ? Colors.red[400]! : Colors.grey[300]!,
+              width: hasError ? 1.2 : 1.0,
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedGenre,
+              isExpanded: true,
+              hint: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Text(
+                  'Pilih Genre',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              borderRadius: BorderRadius.circular(8),
+              items: kEventGenres.map((genre) {
+                return DropdownMenuItem(
+                  value: genre,
+                  child: Text(genre, style: const TextStyle(fontSize: 13)),
+                );
+              }).toList(),
+              onChanged: (val) => setState(() => _selectedGenre = val),
+            ),
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              'Genre tidak boleh kosong.',
+              style: TextStyle(color: Colors.red[700], fontSize: 11),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── Start date + time field ──────────────────
+  Widget _buildStartDateTimeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Date row: DD / MM / YYYY
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: TextFormField(
-                controller: _dayController,
+                controller: _startDayController,
                 keyboardType: TextInputType.number,
                 maxLength: 2,
                 textAlign: TextAlign.center,
@@ -330,7 +433,7 @@ class _PostEventPageState extends State<PostEventPage> {
             const SizedBox(width: 8),
             Expanded(
               child: TextFormField(
-                controller: _monthController,
+                controller: _startMonthController,
                 keyboardType: TextInputType.number,
                 maxLength: 2,
                 textAlign: TextAlign.center,
@@ -344,7 +447,7 @@ class _PostEventPageState extends State<PostEventPage> {
             Expanded(
               flex: 2,
               child: TextFormField(
-                controller: _yearController,
+                controller: _startYearController,
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 textAlign: TextAlign.center,
@@ -364,6 +467,83 @@ class _PostEventPageState extends State<PostEventPage> {
               style: TextStyle(color: Colors.red[700], fontSize: 11),
             ),
           ),
+        const SizedBox(height: 8),
+        // Time row: HH : MM
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _startHourController,
+                keyboardType: TextInputType.number,
+                maxLength: 2,
+                textAlign: TextAlign.center,
+                decoration: _fieldDecoration('HH').copyWith(counterText: ''),
+                validator: _Validators.hour,
+                autovalidateMode: _autovalidate,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Text(
+                ':',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            Expanded(
+              child: TextFormField(
+                controller: _startMinuteController,
+                keyboardType: TextInputType.number,
+                maxLength: 2,
+                textAlign: TextAlign.center,
+                decoration: _fieldDecoration('MM').copyWith(counterText: ''),
+                validator: _Validators.minute,
+                autovalidateMode: _autovalidate,
+              ),
+            ),
+            const Expanded(flex: 2, child: SizedBox()),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 2, left: 2),
+          child: Text(
+            'Format 24 jam (contoh: 09:30 atau 14:00)',
+            style: TextStyle(color: Colors.grey[500], fontSize: 11),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Duration days field ──────────────────────
+  Widget _buildDurationField() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: TextFormField(
+            controller: _durationDaysController,
+            keyboardType: TextInputType.number,
+            maxLength: 2,
+            textAlign: TextAlign.center,
+            decoration: _fieldDecoration('1').copyWith(counterText: ''),
+            validator: _Validators.durationDays,
+            autovalidateMode: _autovalidate,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: Text(
+            'hari  (maks. 30 hari)',
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+        ),
       ],
     );
   }
@@ -373,7 +553,6 @@ class _PostEventPageState extends State<PostEventPage> {
   Widget build(BuildContext context) {
     return BlocListener<EventBloc, EventBlocState>(
       listener: _onBlocState,
-      // Only listen to create-related states so list transitions don't trigger
       listenWhen: (_, current) =>
           current is EventCreating ||
           current is EventCreated ||
@@ -439,6 +618,11 @@ class _PostEventPageState extends State<PostEventPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    _buildLabel('Genre Kegiatan'),
+                    const SizedBox(height: 6),
+                    _buildGenreDropdown(),
+                    const SizedBox(height: 16),
+
                     _buildLabel('Deskripsi Kegiatan'),
                     const SizedBox(height: 6),
                     TextFormField(
@@ -469,9 +653,14 @@ class _PostEventPageState extends State<PostEventPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    _buildLabel('Tanggal Kegiatan'),
+                    _buildLabel('Tanggal & Jam Mulai'),
                     const SizedBox(height: 6),
-                    _buildDateField(),
+                    _buildStartDateTimeField(),
+                    const SizedBox(height: 16),
+
+                    _buildLabel('Durasi Kegiatan'),
+                    const SizedBox(height: 6),
+                    _buildDurationField(),
                     const SizedBox(height: 16),
 
                     _buildLabel('Kuota Anggota'),

@@ -76,4 +76,26 @@ class AuthRepositoryImpl implements AuthRepository {
       return left(Failure(e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> editProfile({
+    String? username,
+    String? avatarUrl,
+    String? oldPassword,
+    String? newPassword,
+  }) async {
+    try {
+      await remoteDataSource.editProfile(
+        username: username,
+        avatarUrl: avatarUrl,
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      return right(null);
+    } on sb.AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
 }

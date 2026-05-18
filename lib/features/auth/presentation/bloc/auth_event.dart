@@ -23,3 +23,17 @@ final class AuthLogin extends AuthEvent {
 }
 
 final class AuthIsUserLoggedIn extends AuthEvent {}
+
+final class AuthEditProfile extends AuthEvent {
+  final String? username;
+  final String? avatarUrl;
+  final String? oldPassword;
+  final String? newPassword;
+
+  AuthEditProfile({
+    this.username,
+    this.avatarUrl,
+    this.oldPassword,
+    this.newPassword,
+  });
+}

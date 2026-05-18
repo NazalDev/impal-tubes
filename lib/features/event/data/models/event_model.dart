@@ -13,6 +13,7 @@ class EventModel extends EventEntity {
     super.updatedAt,
     super.imageUrl,
     required super.id,
+    super.genre,
   });
 
   factory EventModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +33,7 @@ class EventModel extends EventEntity {
           : null,
       imageUrl: map['image_url'] as String?,
       id: map['id'] as int,
+      genre: map['genre'] as String?,
     );
   }
 
@@ -46,5 +48,6 @@ class EventModel extends EventEntity {
     if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     if (imageUrl != null) 'image_url': imageUrl,
+    if (genre != null) 'genre': genre,
   };
 }

@@ -107,15 +107,23 @@ class _KelolaEventPageState extends State<KelolaEventPage> {
                       ),
                     ),
                   ),
-                  onManageMembers: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<ProfileBloc>(),
-                        child: ManageMembersPage(event: event),
+                  onManageMembers: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<ProfileBloc>(),
+                          child: ManageMembersPage(event: event),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                    // Reload after returning so the list stays fresh
+                    if (context.mounted) {
+                      context.read<ProfileBloc>().add(
+                        ProfileLoadUserEvents(userId: widget.userId),
+                      );
+                    }
+                  },
                   onCancel: () => _confirmCancel(context, event.id),
                 );
               },

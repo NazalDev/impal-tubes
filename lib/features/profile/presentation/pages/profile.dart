@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:volync/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:volync/core/theme/app_pallete.dart';
+import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:volync/features/auth/presentation/pages/edit_profile_page.dart';
 import 'package:volync/features/auth/presentation/pages/login1.dart';
 import 'package:volync/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:volync/features/profile/presentation/pages/kelola_event_page.dart';
+import 'package:volync/init_dependencies.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -14,9 +17,7 @@ class ProfilePage extends StatelessWidget {
     return BlocListener<ProfileBloc, ProfileState>(
       listener: (context, state) {
         if (state is ProfileSignOutSuccess) {
-          // Clear the user from the global cubit so the app redirects to login
           context.read<AppUserCubit>().updateUser(null);
-          // Navigate to login and clear back stack
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginPage()),
             (route) => false,
@@ -67,10 +68,8 @@ class ProfilePage extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          // Avatar
                           _buildAvatar(user.avatar_url, user.username),
                           const SizedBox(width: 16),
-                          // User info
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,7 +123,6 @@ class ProfilePage extends StatelessWidget {
 
                     const SizedBox(height: 28),
 
-                    // ── Menu Items ──────────────────────────────────────
                     const Text(
                       'Menu',
                       style: TextStyle(
@@ -140,6 +138,22 @@ class ProfilePage extends StatelessWidget {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
+                            _MenuTile(
+                              icon: Icons.person_outline_rounded,
+                              label: 'Edit Profil',
+                              subtitle: 'Ubah username, foto profil, atau password',
+                              color: Colors.indigo,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider.value(
+                                    value: serviceLocator<AuthBloc>(),
+                                    child: const EditProfilePage(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
                             _MenuTile(
                               icon: Icons.event_note_rounded,
                               label: 'Kelola Event',
@@ -311,7 +325,7 @@ class _MenuTile extends StatelessWidget {
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),

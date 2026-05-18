@@ -6,6 +6,7 @@ import 'package:volync/features/auth/data/datasource/auth_remote_data_source.dar
 import 'package:volync/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:volync/features/auth/domain/repository/auth_repository.dart';
 import 'package:volync/features/auth/domain/usecase/current_user.dart';
+import 'package:volync/features/auth/domain/usecase/edit_profile_usecase.dart';
 import 'package:volync/features/auth/domain/usecase/user_login.dart';
 import 'package:volync/features/auth/domain/usecase/user_sign_up.dart';
 import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
@@ -15,8 +16,10 @@ import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
-import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
+import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
+import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
+import 'package:volync/features/history/history_injector.dart';
 import 'package:volync/features/profile/profile_injector.dart';
 
 final serviceLocator = GetIt.instance;
@@ -31,7 +34,8 @@ Future<void> initDependencies() async {
   serviceLocator.registerLazySingleton(() => supabase.client);
 
   _initEvent();
-  initProfile(); // ← Profile feature
+  initProfile();
+  initHistory(); // ← History feature
 
   serviceLocator.registerLazySingleton(() => AppUserCubit());
 }
@@ -48,6 +52,7 @@ void _initAuth() {
   serviceLocator.registerFactory(() => UserSignUp(serviceLocator()));
   serviceLocator.registerFactory(() => UserLogin(serviceLocator()));
   serviceLocator.registerFactory(() => CurrentUser(serviceLocator()));
+  serviceLocator.registerFactory(() => EditProfileUsecase(serviceLocator()));
 
   serviceLocator.registerLazySingleton(
     () => AuthBloc(
@@ -55,6 +60,7 @@ void _initAuth() {
       userLogin: serviceLocator(),
       currentUser: serviceLocator(),
       appUserCubit: serviceLocator(),
+      editProfile: serviceLocator(),
     ),
   );
 }

@@ -239,6 +239,8 @@ class _DaftarBottomBar extends StatelessWidget {
           current is EventRegisterError,
       listener: (context, state) {
         if (state is EventRegistered) {
+          // Reload events so the home list reflects any status changes
+          context.read<EventBloc>().add(LoadEvents(reset: true));
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

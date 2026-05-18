@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:volync/features/event/presentation/pages/home.dart';
+import 'package:volync/features/history/presentation/pages/history.dart';
+
 import 'package:volync/screen/calendar.dart';
-import 'package:volync/screen/history.dart';
 import 'package:volync/features/event/presentation/pages/post_event.dart';
 import 'package:volync/features/profile/presentation/pages/profile.dart';
 
@@ -22,7 +23,7 @@ class _NavigationBarCustomState extends State<NavigationBarCustom> {
   final List<Widget> _pages = [
     HomePage(),
     CalendarPage(),
-    HistoryPage(),
+    HistoryScreen(),
     ProfilePage(),
   ];
 
@@ -73,37 +74,6 @@ class _NavigationBarCustomState extends State<NavigationBarCustom> {
           ),
         ],
       ),
-      endDrawer: Drawer(
-        child: ListView(
-          // Important: Remove any padding from the ListView.
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text('Drawer Header'),
-            ),
-            ListTile(
-              title: const Text('Post Event'),
-              leading: const Icon(Icons.post_add),
-              onTap: () {
-                _scaffoldKey.currentState?.closeEndDrawer();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PostEventPage()),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text('Post Forum'),
-              leading: const Icon(Icons.forum),
-              onTap: () {
-                _scaffoldKey.currentState?.closeEndDrawer();
-                // open forum post form
-              },
-            ),
-          ],
-        ),
-      ),
 
       floatingActionButton: _selectedIndex == 0
           ? SizedBox(
@@ -111,7 +81,10 @@ class _NavigationBarCustomState extends State<NavigationBarCustom> {
               height: 72,
               child: FloatingActionButton(
                 onPressed: () {
-                  _scaffoldKey.currentState?.openEndDrawer();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PostEventPage()),
+                  );
                 },
                 backgroundColor: Color.fromARGB(255, 85, 169, 210),
                 shape: CircleBorder(),

@@ -145,12 +145,21 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     RegisterEvent event,
     Emitter<EventBlocState> emit,
   ) async {
+    final previousLoaded = state is EventLoaded ? state as EventLoaded : null;
     emit(EventRegistering());
     try {
       await registerEventUseCase(eventId: event.eventId, userId: event.userId);
       emit(EventRegistered());
+      // Immediately restore the EventLoaded state so the home list is still
+      // visible after the bottom sheet closes.
+      if (previousLoaded != null) {
+        emit(previousLoaded);
+      }
     } catch (e) {
       emit(EventRegisterError(_parseError(e)));
+      if (previousLoaded != null) {
+        emit(previousLoaded);
+      }
     }
   }
 }

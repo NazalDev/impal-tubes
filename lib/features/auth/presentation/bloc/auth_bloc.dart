@@ -4,6 +4,7 @@ import 'package:volync/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:volync/core/usercase/usecase.dart';
 import 'package:volync/core/common/entities/user.dart';
 import 'package:volync/features/auth/domain/usecase/current_user.dart';
+import 'package:volync/features/auth/domain/usecase/edit_profile_usecase.dart';
 import 'package:volync/features/auth/domain/usecase/user_login.dart';
 import 'package:volync/features/auth/domain/usecase/user_sign_up.dart';
 
@@ -15,27 +16,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UserLogin _userLogin;
   final CurrentUser _currentUser;
   final AppUserCubit _appUserCubit;
+  final EditProfileUsecase _editProfile;
 
   AuthBloc({
     required UserSignUp userSignUp,
     required UserLogin userLogin,
     required CurrentUser currentUser,
     required AppUserCubit appUserCubit,
+    required EditProfileUsecase editProfile,
   }) : _userLogin = userLogin,
        _userSignUp = userSignUp,
        _currentUser = currentUser,
        _appUserCubit = appUserCubit,
+       _editProfile = editProfile,
        super(AuthInitial()) {
-    on<AuthEvent>((_, emit) => emit(AuthLoading()));
     on<AuthSignUp>(_onAuthSignUp);
     on<AuthLogin>(_onAuthLogin);
     on<AuthIsUserLoggedIn>(_isUserLoggedIn);
+    on<AuthEditProfile>(_onEditProfile);
   }
 
   void _isUserLoggedIn(
     AuthIsUserLoggedIn event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     final res = await _currentUser(NoParams());
 
     res.fold(
@@ -45,6 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onAuthSignUp(AuthSignUp event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
     final res = await _userSignUp(
       UserSignUpParams(
         username: event.username,
@@ -60,6 +66,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onAuthLogin(AuthLogin event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
     final res = await _userLogin(
       UserLoginParams(email: event.email, password: event.password),
     );
@@ -67,6 +74,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     res.fold(
       (l) => emit(AuthFailure(l.message)),
       (r) => _emitAuthSuccess(r, emit),
+    );
+  }
+
+  void _onEditProfile(AuthEditProfile event, Emitter<AuthState> emit) async {
+    emit(AuthEditProfileLoading());
+    final res = await _editProfile(
+      EditProfileParams(
+        username: event.username,
+        avatarUrl: event.avatarUrl,
+        oldPassword: event.oldPassword,
+        newPassword: event.newPassword,
+      ),
+    );
+
+    res.fold(
+      (l) => emit(AuthEditProfileFailure(l.message)),
+      (_) async {
+        emit(AuthEditProfileSuccess());
+        // Refresh the user data in the cubit so profile page updates
+        final userRes = await _currentUser(NoParams());
+        userRes.fold((_) {}, (user) => _appUserCubit.updateUser(user));
+      },
     );
   }
 

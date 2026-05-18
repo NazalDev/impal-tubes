@@ -16,4 +16,11 @@ abstract interface class AuthRepository {
 
   Future<Either<Failure, void>> setAvatar(String url);
   Future<Either<Failure, void>> updateUser({required String body});
+
+  Future<Either<Failure, void>> editProfile({
+    String? username,
+    String? avatarUrl,
+    String? oldPassword,
+    String? newPassword,
+  });
 }
