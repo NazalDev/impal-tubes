@@ -5,6 +5,7 @@ import 'package:volync/features/event/domain/entity/post_disc.dart';
 import 'package:volync/features/event/domain/entity/reply_post_disc.dart';
 import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
+import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 
 class EventRepositoryImpl implements EventRepository {
   final EventRemoteDataSource remoteDataSource;
@@ -28,7 +29,6 @@ class EventRepositoryImpl implements EventRepository {
 
   @override
   Future<void> createEvent(EventEntity event) {
-    // Convert entity → model so the datasource can call toMap()
     final model = EventModel(
       userId: event.userId,
       title: event.title,
@@ -48,6 +48,24 @@ class EventRepositoryImpl implements EventRepository {
   @override
   Future<void> registerEvent(int eventId, String userId) {
     return remoteDataSource.registerEvent(eventId, userId);
+  }
+
+  @override
+  Future<List<EventWithRegistration>> getCalendarEvents({
+    required String userId,
+  }) {
+    return remoteDataSource.getCalendarEvents(userId: userId);
+  }
+
+  @override
+  Future<bool> isUserRegistered({
+    required int eventId,
+    required String userId,
+  }) {
+    return remoteDataSource.isUserRegistered(
+      eventId: eventId,
+      userId: userId,
+    );
   }
 }
 

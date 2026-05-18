@@ -39,7 +39,7 @@ class EventError extends EventBlocState {
   EventError(this.message);
 }
 
-// Separate states for the create flow so the list page isn't affected
+// Create flow
 class EventCreating extends EventBlocState {}
 
 class EventCreated extends EventBlocState {}
@@ -49,14 +49,27 @@ class EventCreateError extends EventBlocState {
   EventCreateError(this.message);
 }
 
-//REGISTERATION
+// Registration flow
 class EventRegistering extends EventBlocState {}
 
 class EventRegistered extends EventBlocState {}
+
+class EventAlreadyRegistered extends EventBlocState {}
 
 class EventRegisterError extends EventBlocState {
   final String message;
   EventRegisterError(this.message);
 }
 
-class ResetEventState extends EventBlocEvent {}
+// Calendar flow
+class CalendarLoading extends EventBlocState {}
+
+class CalendarLoaded extends EventBlocState {
+  final List<EventWithRegistration> events;
+  CalendarLoaded({required this.events});
+}
+
+class CalendarError extends EventBlocState {
+  final String message;
+  CalendarError(this.message);
+}

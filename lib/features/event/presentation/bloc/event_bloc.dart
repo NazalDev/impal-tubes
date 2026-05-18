@@ -2,8 +2,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
+import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
+import 'package:volync/features/event/domain/repository/event_repository.dart';
 
 part 'event_state.dart';
 part 'event_event.dart';
@@ -12,6 +14,8 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
   final GetEventsUseCase getEventsUseCase;
   final CreateEventUseCase createEventUseCase;
   final RegistEventUsecase registerEventUseCase;
+  final GetCalendarEventsUseCase getCalendarEventsUseCase;
+  final EventRepository eventRepository;
 
   static const int _pageSize = 10;
   int _offset = 0;
@@ -20,6 +24,8 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     required this.getEventsUseCase,
     required this.createEventUseCase,
     required this.registerEventUseCase,
+    required this.getCalendarEventsUseCase,
+    required this.eventRepository,
   }) : super(EventInitial()) {
     on<LoadEvents>(_onLoadEvents);
     on<SearchEvents>(_onSearchEvents);
@@ -27,14 +33,13 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     on<CreateEvent>(_onCreateEvent);
     on<RegisterEvent>(_onRegisterEvent);
     on<ResetEventState>(_onResetState);
+    on<LoadCalendarEvents>(_onLoadCalendarEvents);
   }
 
   Future<void> _onResetState(
     ResetEventState event,
     Emitter<EventBlocState> emit,
   ) async {
-    // Re-emit EventLoaded if we have events, otherwise EventInitial
-    // This clears any stale create/register states
     final current = state;
     if (current is EventLoaded) {
       emit(
@@ -148,10 +153,20 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     final previousLoaded = state is EventLoaded ? state as EventLoaded : null;
     emit(EventRegistering());
     try {
+      // Guard: check if already registered before inserting
+      final alreadyRegistered = await eventRepository.isUserRegistered(
+        eventId: event.eventId,
+        userId: event.userId,
+      );
+
+      if (alreadyRegistered) {
+        emit(EventAlreadyRegistered());
+        if (previousLoaded != null) emit(previousLoaded);
+        return;
+      }
+
       await registerEventUseCase(eventId: event.eventId, userId: event.userId);
       emit(EventRegistered());
-      // Immediately restore the EventLoaded state so the home list is still
-      // visible after the bottom sheet closes.
       if (previousLoaded != null) {
         emit(previousLoaded);
       }
@@ -160,6 +175,19 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
       if (previousLoaded != null) {
         emit(previousLoaded);
       }
+    }
+  }
+
+  Future<void> _onLoadCalendarEvents(
+    LoadCalendarEvents event,
+    Emitter<EventBlocState> emit,
+  ) async {
+    emit(CalendarLoading());
+    try {
+      final events = await getCalendarEventsUseCase(userId: event.userId);
+      emit(CalendarLoaded(events: events));
+    } catch (e) {
+      emit(CalendarError(e.toString()));
     }
   }
 }

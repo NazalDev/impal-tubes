@@ -33,3 +33,10 @@ class RegisterEvent extends EventBlocEvent {
   final String userId;
   RegisterEvent({required this.eventId, required this.userId});
 }
+
+class ResetEventState extends EventBlocEvent {}
+
+class LoadCalendarEvents extends EventBlocEvent {
+  final String userId;
+  LoadCalendarEvents({required this.userId});
+}

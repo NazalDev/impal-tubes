@@ -236,16 +236,24 @@ class _DaftarBottomBar extends StatelessWidget {
       listenWhen: (_, current) =>
           current is EventRegistering ||
           current is EventRegistered ||
+          current is EventAlreadyRegistered ||
           current is EventRegisterError,
       listener: (context, state) {
         if (state is EventRegistered) {
-          // Reload events so the home list reflects any status changes
           context.read<EventBloc>().add(LoadEvents(reset: true));
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Berhasil mendaftar ke ${event.title}!'),
               backgroundColor: Colors.teal,
+            ),
+          );
+        } else if (state is EventAlreadyRegistered) {
+          // Do NOT close the sheet — just show the snackbar.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kamu sudah mendaftar ke event ini'),
+              backgroundColor: Colors.orange,
             ),
           );
         } else if (state is EventRegisterError) {
@@ -272,6 +280,7 @@ class _DaftarBottomBar extends StatelessWidget {
           buildWhen: (_, current) =>
               current is EventRegistering ||
               current is EventRegistered ||
+              current is EventAlreadyRegistered ||
               current is EventRegisterError ||
               current is EventLoaded ||
               current is EventInitial,

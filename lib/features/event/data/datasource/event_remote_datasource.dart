@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:volync/features/event/data/models/event_model.dart';
 import 'package:volync/features/event/data/models/post_disc_model.dart';
 import 'package:volync/features/event/data/models/reply_post_disc_model.dart';
+import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 
 abstract class EventRemoteDataSource {
   Future<List<EventModel>> getEvents({
@@ -15,6 +16,15 @@ abstract class EventRemoteDataSource {
   Future<void> createEvent(EventModel event);
 
   Future<void> registerEvent(int eventId, String userId);
+
+  Future<List<EventWithRegistration>> getCalendarEvents({
+    required String userId,
+  });
+
+  Future<bool> isUserRegistered({
+    required int eventId,
+    required String userId,
+  });
 
   Future<List<PostDiscModel>> getComments({
     required int eventId,
@@ -44,7 +54,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
   EventRemoteDataSourceImpl(this.supabase);
 
-  // EVENTS
+  // ── EVENTS ────────────────────────────────────────────────────────────────
 
   @override
   Future<List<EventModel>> getEvents({
@@ -101,7 +111,80 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     await supabase.from('event').insert(event.toMap());
   }
 
-  // DISCUSCCION
+  // ── CALENDAR ──────────────────────────────────────────────────────────────
+
+  @override
+  Future<List<EventWithRegistration>> getCalendarEvents({
+    required String userId,
+  }) async {
+    // Fetch all published/finished events, joined with the user's registration
+    // row (if any) via a left-join on the registration table.
+    final response = await supabase
+        .from('event')
+        .select('''
+          *,
+          registration!left (
+            id,
+            user_id,
+            status
+          )
+        ''')
+        .order('start_at', ascending: true);
+
+    return response.map((row) {
+      final event = EventModel.fromMap(row);
+
+      // The join may return a list or a single map depending on Supabase version.
+      String? registrationStatus;
+      final regRaw = row['registration'];
+      if (regRaw is List) {
+        // Filter to this user's row only.
+        final userReg = regRaw.firstWhere(
+          (r) => r['user_id'] == userId,
+          orElse: () => null,
+        );
+        registrationStatus = userReg?['status'] as String?;
+      } else if (regRaw is Map) {
+        if (regRaw['user_id'] == userId) {
+          registrationStatus = regRaw['status'] as String?;
+        }
+      }
+
+      return EventWithRegistration(
+        event: event,
+        registrationStatus: registrationStatus,
+      );
+    }).toList();
+  }
+
+  @override
+  Future<bool> isUserRegistered({
+    required int eventId,
+    required String userId,
+  }) async {
+    final response = await supabase
+        .from('registration')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    return response != null;
+  }
+
+  // ── REGISTRATION ──────────────────────────────────────────────────────────
+
+  @override
+  Future<void> registerEvent(int eventId, String userId) async {
+    await supabase.from('registration').insert({
+      'event_id': eventId,
+      'user_id': userId,
+      'registered_at': DateTime.now().toIso8601String(),
+      'status': 'pending',
+    });
+  }
+
+  // ── DISCUSSION ────────────────────────────────────────────────────────────
+
   @override
   Future<List<PostDiscModel>> getComments({
     required int eventId,
@@ -125,7 +208,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     return response.map((row) => PostDiscModel.fromMap(row)).toList();
   }
 
-  //REPLIES
   @override
   Future<List<ReplyPostDiscModel>> getReplies({
     required String parentCommentId,
@@ -152,7 +234,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     required String userId,
     required String body,
   }) async {
-    // Insert first, get the new row's id back
     final inserted = await supabase
         .from('postdisc')
         .insert({
@@ -166,7 +247,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
 
     debugPrint('postComment inserted id: ${inserted['id']}');
 
-    // Then fetch the full row with the user join
     final response = await supabase
         .from('postdisc')
         .select('''
@@ -208,15 +288,5 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         ''')
         .single();
     return ReplyPostDiscModel.fromMap(response);
-  }
-
-  @override
-  Future<void> registerEvent(int eventId, String userId) async {
-    await supabase.from('registration').insert({
-      'event_id': eventId,
-      'user_id': userId,
-      'registered_at': DateTime.now().toIso8601String(),
-      'status': 'pending',
-    });
   }
 }

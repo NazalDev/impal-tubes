@@ -15,6 +15,7 @@ import 'package:volync/features/event/data/repositories/event_repository_impl.da
 import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
+import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
 import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
@@ -35,7 +36,7 @@ Future<void> initDependencies() async {
 
   _initEvent();
   initProfile();
-  initHistory(); // ← History feature
+  initHistory();
 
   serviceLocator.registerLazySingleton(() => AppUserCubit());
 }
@@ -81,6 +82,7 @@ void _initEvent() {
   serviceLocator.registerFactory(() => GetEventsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => CreateEventUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => RegistEventUsecase(serviceLocator()));
+  serviceLocator.registerFactory(() => GetCalendarEventsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => GetPostDiscsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => GetRepliesUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => PostCommentUseCase(serviceLocator()));
@@ -91,6 +93,8 @@ void _initEvent() {
       getEventsUseCase: serviceLocator(),
       createEventUseCase: serviceLocator(),
       registerEventUseCase: serviceLocator(),
+      getCalendarEventsUseCase: serviceLocator(),
+      eventRepository: serviceLocator(),
     ),
   );
 }
