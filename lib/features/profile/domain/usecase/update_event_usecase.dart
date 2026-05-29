@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:volync/core/errors/failure.dart';
 import 'package:volync/core/usercase/usecase.dart';
@@ -13,6 +14,7 @@ class UpdateEventUseCase implements UseCase<void, UpdateEventParams> {
     return _profileRepository.updateEvent(
       eventId: params.eventId,
       data: params.data,
+      imageFile: params.imageFile,
     );
   }
 }
@@ -20,5 +22,13 @@ class UpdateEventUseCase implements UseCase<void, UpdateEventParams> {
 class UpdateEventParams {
   final String eventId;
   final Map<String, dynamic> data;
-  const UpdateEventParams({required this.eventId, required this.data});
+  /// Optional local image file.  If set, it is uploaded to Storage and the
+  /// resulting URL is automatically added to [data] before the DB update.
+  final File? imageFile;
+
+  const UpdateEventParams({
+    required this.eventId,
+    required this.data,
+    this.imageFile,
+  });
 }

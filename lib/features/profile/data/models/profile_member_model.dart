@@ -14,7 +14,10 @@ class ProfileMemberModel extends ProfileMemberEntity {
 
   factory ProfileMemberModel.fromMap(Map<String, dynamic> map) {
     // Supabase join: registration row with embedded user row
-    final user = map['users'] as Map<String, dynamic>? ?? {};
+    // Supabase returns the join under the table name used in the select string.
+    // The query uses 'user (...)' so the key is 'user'. Fall back to 'users'
+    // in case the schema alias ever changes.
+    final user = (map['user'] ?? map['users']) as Map<String, dynamic>? ?? {};
     return ProfileMemberModel(
       id: _safeStringCast(map['id']),
       eventId: _safeStringCast(map['event_id']),

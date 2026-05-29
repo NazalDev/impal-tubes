@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:volync/core/usercase/usecase.dart';
@@ -69,7 +70,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     emit(ProfileLoading());
     final res = await _updateEvent(
-      UpdateEventParams(eventId: event.eventId, data: event.data),
+      UpdateEventParams(
+        eventId: event.eventId,
+        data: event.data,
+        imageFile: event.imageFile,
+      ),
     );
     res.fold(
       (failure) => emit(ProfileFailure(failure.message)),
@@ -111,8 +116,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     res.fold(
       (failure) => emit(ProfileFailure(failure.message)),
-      (members) =>
-          emit(ProfileEventMembersLoaded(members: members, eventId: event.eventId)),
+      (members) => emit(
+        ProfileEventMembersLoaded(members: members, eventId: event.eventId),
+      ),
     );
   }
 

@@ -27,3 +27,12 @@ final class AuthEditProfileFailure extends AuthState {
 }
 
 final class AuthEditProfileLoading extends AuthState {}
+
+final class AuthResetPasswordLoading extends AuthState {}
+
+final class AuthResetPasswordSuccess extends AuthState {}
+
+final class AuthResetPasswordFailure extends AuthState {
+  final String message;
+  const AuthResetPasswordFailure(this.message);
+}

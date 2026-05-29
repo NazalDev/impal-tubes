@@ -41,6 +41,8 @@ class EventRepositoryImpl implements EventRepository {
       updatedAt: event.updatedAt,
       imageUrl: event.imageUrl,
       id: 0,
+      genre: event.genre,
+      quota: event.quota,
     );
     return remoteDataSource.createEvent(model);
   }
@@ -62,10 +64,7 @@ class EventRepositoryImpl implements EventRepository {
     required int eventId,
     required String userId,
   }) {
-    return remoteDataSource.isUserRegistered(
-      eventId: eventId,
-      userId: userId,
-    );
+    return remoteDataSource.isUserRegistered(eventId: eventId, userId: userId);
   }
 }
 

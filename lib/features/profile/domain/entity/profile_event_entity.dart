@@ -11,8 +11,11 @@ class ProfileEventEntity {
   final DateTime? updatedAt;
   final String? imageUrl;
   final int? memberCount;
+  final int? quota;
+  final String? genre;
 
-  const ProfileEventEntity({
+  const ProfileEventEntity(
+    this.genre, {
     required this.id,
     required this.userId,
     required this.title,
@@ -25,6 +28,7 @@ class ProfileEventEntity {
     this.updatedAt,
     this.imageUrl,
     this.memberCount,
+    this.quota,
   });
 
   ProfileEventEntity copyWith({
@@ -40,8 +44,11 @@ class ProfileEventEntity {
     DateTime? updatedAt,
     String? imageUrl,
     int? memberCount,
+    int? quota,
+    String? genre,
   }) {
     return ProfileEventEntity(
+      genre ?? this.genre,
       id: id ?? this.id,
       userId: userId ?? this.userId,
       title: title ?? this.title,
@@ -54,6 +61,7 @@ class ProfileEventEntity {
       updatedAt: updatedAt ?? this.updatedAt,
       imageUrl: imageUrl ?? this.imageUrl,
       memberCount: memberCount ?? this.memberCount,
+      quota: quota ?? this.quota,
     );
   }
 }

@@ -11,7 +11,15 @@ final class ProfileLoadUserEvents extends ProfileEvent {
 final class ProfileUpdateEvent extends ProfileEvent {
   final String eventId;
   final Map<String, dynamic> data;
-  ProfileUpdateEvent({required this.eventId, required this.data});
+  /// Optional local image file to upload as the event cover (max 2 MB,
+  /// enforced in the UI layer before this event is dispatched).
+  final File? imageFile;
+
+  ProfileUpdateEvent({
+    required this.eventId,
+    required this.data,
+    this.imageFile,
+  });
 }
 
 final class ProfileDeleteEvent extends ProfileEvent {

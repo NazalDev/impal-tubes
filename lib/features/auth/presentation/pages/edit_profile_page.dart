@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:volync/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:volync/core/theme/app_pallete.dart';
 import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
@@ -14,7 +16,6 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _usernameController;
-  late final TextEditingController _avatarUrlController;
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -24,39 +25,67 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
+  // Avatar file upload (max 1 MB)
+  File? _pickedAvatar;
+  String? _avatarError;
+  static const int _maxAvatarBytes = 1 * 1024 * 1024; // 1 MB
+
   @override
   void initState() {
     super.initState();
     final cubitState = context.read<AppUserCubit>().state;
     final user = cubitState is AppUserLoggedIn ? cubitState.user : null;
     _usernameController = TextEditingController(text: user?.username ?? '');
-    _avatarUrlController = TextEditingController(
-      text: (user?.avatar_url == 'default' ? '' : user?.avatar_url) ?? '',
-    );
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _avatarUrlController.dispose();
     _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
+  // ── Avatar picker ─────────────────────────────────────────────────────────
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final bytes = await file.length();
+
+    if (bytes > _maxAvatarBytes) {
+      setState(() {
+        _pickedAvatar = null;
+        _avatarError = 'Ukuran gambar maksimal 1 MB.';
+      });
+      return;
+    }
+    setState(() {
+      _pickedAvatar = file;
+      _avatarError = null;
+    });
+  }
+
+  void _removeAvatar() => setState(() {
+        _pickedAvatar = null;
+        _avatarError = null;
+      });
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final username = _usernameController.text.trim();
-    final avatarUrl = _avatarUrlController.text.trim();
     final oldPassword = _changePassword ? _oldPasswordController.text : null;
     final newPassword = _changePassword ? _newPasswordController.text : null;
 
     context.read<AuthBloc>().add(
       AuthEditProfile(
         username: username.isNotEmpty ? username : null,
-        avatarUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+        avatarFile: _pickedAvatar,
         oldPassword: oldPassword,
         newPassword: newPassword,
       ),
@@ -68,11 +97,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       labelText: label,
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppPallete.whiteColor,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.teal, width: 1.5),
+        borderSide: BorderSide(color: AppPallete.focusedColor, width: 1.5),
       ),
     );
   }
@@ -87,9 +116,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       listener: (context, state) {
         if (state is AuthEditProfileSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profil berhasil diperbarui!'),
-              backgroundColor: Colors.teal,
+            SnackBar(
+              content: const Text('Profil berhasil diperbarui!'),
+              backgroundColor: AppPallete.focusedColor,
             ),
           );
           Navigator.pop(context);
@@ -97,7 +126,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: Colors.red[700],
+              backgroundColor: AppPallete.errorColor,
             ),
           );
         }
@@ -109,6 +138,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            color: AppPallete.backButtonColor,
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
@@ -130,49 +160,122 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Avatar preview ─────────────────────
+                    // ── Avatar preview & upload ──────────────────────
                     Center(
-                      child: BlocBuilder<AppUserCubit, AppUserState>(
-                        builder: (context, userState) {
-                          final avatarUrl = _avatarUrlController.text.trim();
-                          if (avatarUrl.isNotEmpty) {
-                            return CircleAvatar(
-                              radius: 44,
-                              backgroundImage: NetworkImage(avatarUrl),
-                              onBackgroundImageError: (_, _) {},
-                            );
-                          }
-                          final user = userState is AppUserLoggedIn
-                              ? userState.user
-                              : null;
-                          return CircleAvatar(
-                            radius: 44,
-                            backgroundColor: AppPallete.buttonColor.withValues(
-                              alpha: 0.2,
-                            ),
-                            child: Text(
-                              (user?.username.isNotEmpty == true)
-                                  ? user!.username[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                                color: AppPallete.buttonColor,
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          BlocBuilder<AppUserCubit, AppUserState>(
+                            builder: (context, userState) {
+                              if (_pickedAvatar != null) {
+                                return CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: FileImage(_pickedAvatar!),
+                                );
+                              }
+                              final user = userState is AppUserLoggedIn
+                                  ? userState.user
+                                  : null;
+                              final avatarUrl = user?.avatar_url;
+                              if (avatarUrl != null &&
+                                  avatarUrl != 'default' &&
+                                  avatarUrl.isNotEmpty) {
+                                return CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: NetworkImage(avatarUrl),
+                                  onBackgroundImageError: (_, _) {},
+                                );
+                              }
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundColor:
+                                    AppPallete.buttonColor.withValues(alpha: 0.2),
+                                child: Text(
+                                  (user?.username.isNotEmpty == true)
+                                      ? user!.username[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppPallete.buttonColor,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          // Edit badge
+                          GestureDetector(
+                            onTap: _pickAvatar,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppPallete.focusedColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppPallete.whiteColor,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_outlined,
+                                size: 16,
+                                color: AppPallete.whiteColor,
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 28),
 
-                    // ── Username ───────────────────────────
+                    if (_pickedAvatar != null) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _removeAvatar,
+                          icon: Icon(Icons.delete_outline,
+                              size: 16, color: AppPallete.errorColor),
+                          label: Text(
+                            'Hapus foto',
+                            style: TextStyle(
+                                color: AppPallete.errorColor, fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (_avatarError != null)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _avatarError!,
+                            style: TextStyle(
+                                color: AppPallete.errorColor, fontSize: 11),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Text(
+                        'Ketuk ikon kamera untuk ganti foto (maks. 1 MB)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppPallete.borderColor,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Username ─────────────────────────────────────
                     const Text(
                       'Username',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: AppPallete.defaultTextColor,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -189,35 +292,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-
-                    // ── Avatar URL ─────────────────────────
-                    const Text(
-                      'URL Foto Profil',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _avatarUrlController,
-                      decoration: _decoration(
-                        'https://... (kosongkan untuk gunakan inisial)',
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
                     const SizedBox(height: 24),
 
-                    // ── Password toggle ────────────────────
+                    // ── Password toggle ───────────────────────────────
                     Row(
                       children: [
                         Switch(
                           value: _changePassword,
                           onChanged: (val) =>
                               setState(() => _changePassword = val),
-                          activeColor: Colors.teal,
+                          activeColor: AppPallete.focusedColor,
                         ),
                         const SizedBox(width: 8),
                         const Text(
@@ -232,8 +316,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                     if (_changePassword) ...[
                       const SizedBox(height: 16),
-
-                      // Old password
                       TextFormField(
                         controller: _oldPasswordController,
                         obscureText: _obscureOld,
@@ -244,7 +326,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               _obscureOld
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.grey,
+                              color: AppPallete.borderColor,
                             ),
                             onPressed: () =>
                                 setState(() => _obscureOld = !_obscureOld),
@@ -260,8 +342,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             : null,
                       ),
                       const SizedBox(height: 12),
-
-                      // New password
                       TextFormField(
                         controller: _newPasswordController,
                         obscureText: _obscureNew,
@@ -272,7 +352,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               _obscureNew
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.grey,
+                              color: AppPallete.borderColor,
                             ),
                             onPressed: () =>
                                 setState(() => _obscureNew = !_obscureNew),
@@ -291,8 +371,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             : null,
                       ),
                       const SizedBox(height: 12),
-
-                      // Confirm password
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirm,
@@ -303,7 +381,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               _obscureConfirm
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.grey,
+                              color: AppPallete.borderColor,
                             ),
                             onPressed: () => setState(
                               () => _obscureConfirm = !_obscureConfirm,
@@ -323,15 +401,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                     const SizedBox(height: 32),
 
-                    // ── Save button ────────────────────────
+                    // ── Save button ───────────────────────────────────
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppPallete.focusedColor,
+                          foregroundColor: AppPallete.whiteColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -342,7 +420,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppPallete.whiteColor,
                                 ),
                               )
                             : const Text(

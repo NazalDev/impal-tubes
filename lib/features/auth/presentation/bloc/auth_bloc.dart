@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:volync/core/common/cubits/app_user/app_user_cubit.dart';
@@ -7,6 +8,7 @@ import 'package:volync/features/auth/domain/usecase/current_user.dart';
 import 'package:volync/features/auth/domain/usecase/edit_profile_usecase.dart';
 import 'package:volync/features/auth/domain/usecase/user_login.dart';
 import 'package:volync/features/auth/domain/usecase/user_sign_up.dart';
+import 'package:volync/features/auth/domain/usecase/reset_password_usecase.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -17,6 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CurrentUser _currentUser;
   final AppUserCubit _appUserCubit;
   final EditProfileUsecase _editProfile;
+  final ResetPasswordUsecase _resetPassword;
 
   AuthBloc({
     required UserSignUp userSignUp,
@@ -24,16 +27,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required CurrentUser currentUser,
     required AppUserCubit appUserCubit,
     required EditProfileUsecase editProfile,
+    required ResetPasswordUsecase resetPassword,
   }) : _userLogin = userLogin,
        _userSignUp = userSignUp,
        _currentUser = currentUser,
        _appUserCubit = appUserCubit,
        _editProfile = editProfile,
+       _resetPassword = resetPassword,
        super(AuthInitial()) {
     on<AuthSignUp>(_onAuthSignUp);
     on<AuthLogin>(_onAuthLogin);
     on<AuthIsUserLoggedIn>(_isUserLoggedIn);
     on<AuthEditProfile>(_onEditProfile);
+    on<AuthResetPassword>(_onResetPassword);
   }
 
   void _isUserLoggedIn(
@@ -42,7 +48,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     final res = await _currentUser(NoParams());
-
     res.fold(
       (l) => emit(AuthFailure(l.message)),
       (r) => _emitAuthSuccess(r, emit),
@@ -58,7 +63,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       ),
     );
-
     res.fold(
       (l) => emit(AuthFailure(l.message)),
       (r) => _emitAuthSuccess(r, emit),
@@ -70,7 +74,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final res = await _userLogin(
       UserLoginParams(email: event.email, password: event.password),
     );
-
     res.fold(
       (l) => emit(AuthFailure(l.message)),
       (r) => _emitAuthSuccess(r, emit),
@@ -82,20 +85,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final res = await _editProfile(
       EditProfileParams(
         username: event.username,
-        avatarUrl: event.avatarUrl,
+        avatarFile: event.avatarFile,
         oldPassword: event.oldPassword,
         newPassword: event.newPassword,
       ),
     );
-
     res.fold(
       (l) => emit(AuthEditProfileFailure(l.message)),
       (_) async {
         emit(AuthEditProfileSuccess());
-        // Refresh the user data in the cubit so profile page updates
         final userRes = await _currentUser(NoParams());
         userRes.fold((_) {}, (user) => _appUserCubit.updateUser(user));
       },
+    );
+  }
+
+  void _onResetPassword(
+    AuthResetPassword event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthResetPasswordLoading());
+    final res = await _resetPassword(
+      ResetPasswordParams(
+        username: event.username,
+        email: event.email,
+        newPassword: event.newPassword,
+      ),
+    );
+    res.fold(
+      (l) => emit(AuthResetPasswordFailure(l.message)),
+      (_) => emit(AuthResetPasswordSuccess()),
     );
   }
 

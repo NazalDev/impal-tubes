@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:volync/core/theme/app_pallete.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
@@ -64,14 +65,18 @@ class EventCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.teal.withAlpha(25),
+                            color: event.status == 'cancelled'
+                                ? AppPallete.errorColor.withAlpha(25)
+                                : AppPallete.focusedColor.withAlpha(25),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             event.status,
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.teal[700],
+                              color: event.status == 'cancelled'
+                                  ? AppPallete.errorColor
+                                  : AppPallete.focusedColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -204,12 +209,12 @@ class EventCard extends StatelessWidget {
       builder: (_) => BlocProvider.value(
         value: bloc,
         child: EventDetailSheet(
-            event: event,
-            getpostDiscsUseCase: getpostDiscsUseCase,
-            getRepliesUseCase: getRepliesUseCase,
-            postCommentUseCase: postCommentUseCase,
-            postReplyUseCase: postReplyUseCase,
-          ),
+          event: event,
+          getpostDiscsUseCase: getpostDiscsUseCase,
+          getRepliesUseCase: getRepliesUseCase,
+          postCommentUseCase: postCommentUseCase,
+          postReplyUseCase: postReplyUseCase,
+        ),
       ),
     );
   }

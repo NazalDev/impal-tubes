@@ -11,6 +11,7 @@ class EventEntity {
   final DateTime? updatedAt;
   final String? imageUrl;
   final String? genre;
+  final int? quota;
 
   const EventEntity({
     required this.userId,
@@ -25,5 +26,6 @@ class EventEntity {
     this.imageUrl,
     required this.id,
     this.genre,
+    this.quota,
   });
 }

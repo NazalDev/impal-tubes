@@ -1,5 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:volync/core/errors/exceptions.dart';
@@ -27,7 +28,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> setAvatar(String url) {
-    // TODO: implement setAvatar
     throw UnimplementedError();
   }
 
@@ -48,7 +48,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> updateUser({required String body}) {
-    // TODO: implement updateUser
     throw UnimplementedError();
   }
 
@@ -70,7 +69,6 @@ class AuthRepositoryImpl implements AuthRepository {
       if (user == null) {
         return left(Failure('User not logged in!'));
       }
-
       return right(user);
     } on ServerException catch (e) {
       return left(Failure(e.message));
@@ -80,15 +78,39 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> editProfile({
     String? username,
-    String? avatarUrl,
+    File? avatarFile,
     String? oldPassword,
     String? newPassword,
   }) async {
     try {
+      // 1. Upload avatar file if provided → get back a public URL
+      final avatarUrl = await remoteDataSource.uploadAvatar(avatarFile);
+
+      // 2. Update profile (passes URL string or null)
       await remoteDataSource.editProfile(
         username: username,
         avatarUrl: avatarUrl,
         oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      return right(null);
+    } on sb.AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPassword({
+    required String username,
+    required String email,
+    required String newPassword,
+  }) async {
+    try {
+      await remoteDataSource.resetPassword(
+        username: username,
+        email: email,
         newPassword: newPassword,
       );
       return right(null);

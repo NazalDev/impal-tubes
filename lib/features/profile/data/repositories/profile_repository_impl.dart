@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:volync/core/errors/exceptions.dart';
 import 'package:volync/core/errors/failure.dart';
@@ -27,9 +28,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<Either<Failure, void>> updateEvent({
     required String eventId,
     required Map<String, dynamic> data,
+    File? imageFile,
   }) async {
     try {
-      await _remoteDataSource.updateEvent(eventId: eventId, data: data);
+      // 1. Upload image if provided, then inject the URL into the data map
+      final imageUrl = await _remoteDataSource.uploadEventImage(
+        eventId: eventId,
+        imageFile: imageFile,
+      );
+
+      final payload = Map<String, dynamic>.from(data);
+      if (imageUrl != null) payload['image_url'] = imageUrl;
+
+      // 2. Persist all fields in one DB update
+      await _remoteDataSource.updateEvent(eventId: eventId, data: payload);
       return right(null);
     } on ServerException catch (e) {
       return left(Failure(e.message));

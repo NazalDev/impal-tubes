@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:volync/core/theme/app_pallete.dart';
 import 'package:volync/features/profile/domain/entity/profile_event_entity.dart';
+import 'package:volync/features/profile/domain/entity/profile_member_entity.dart';
 import 'package:volync/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:volync/features/profile/presentation/widgets/member_list_tile.dart';
 
@@ -15,7 +16,12 @@ class ManageMembersPage extends StatefulWidget {
 }
 
 class _ManageMembersPageState extends State<ManageMembersPage> {
-  String _filter = 'all'; // 'all' | 'pending' | 'approved' | 'rejected'
+  String _filter = 'all';
+
+  /// Cache the last successfully loaded list so the UI stays visible while
+  /// the bloc is in Loading / ActionSuccess states between approve/reject.
+  List<ProfileMemberEntity> _cachedMembers = [];
+  bool _initialLoadDone = false;
 
   @override
   void initState() {
@@ -53,7 +59,6 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
       ),
       body: Column(
         children: [
-          // Filter chips
           Container(
             color: AppPallete.cardBackgroundColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -91,7 +96,6 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
               ),
             ),
           ),
-
           Expanded(
             child: BlocConsumer<ProfileBloc, ProfileState>(
               listener: (context, state) {
@@ -110,86 +114,111 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
                       backgroundColor: Colors.green,
                     ),
                   );
+                  // Reload member list after every approve / reject
+                  context.read<ProfileBloc>().add(
+                    ProfileLoadEventMembers(eventId: widget.event.id),
+                  );
+                }
+                if (state is ProfileEventMembersLoaded &&
+                    state.eventId == widget.event.id) {
+                  setState(() {
+                    _cachedMembers = state.members;
+                    _initialLoadDone = true;
+                  });
                 }
               },
               builder: (context, state) {
-                if (state is ProfileLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
+                // First-ever load — nothing cached yet
+                if (!_initialLoadDone && state is ProfileLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final isRefreshing =
+                    state is ProfileLoading && _initialLoadDone;
+
+                final filtered = _filter == 'all'
+                    ? _cachedMembers
+                    : _cachedMembers
+                          .where((m) => m.status == _filter)
+                          .toList();
+
+                if (_initialLoadDone && filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Tidak ada anggota',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
-                if (state is ProfileEventMembersLoaded) {
-                  final filtered = _filter == 'all'
-                      ? state.members
-                      : state.members
-                            .where((m) => m.status == _filter)
-                            .toList();
-
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 64,
-                            color: Colors.grey[400],
+                return Stack(
+                  children: [
+                    ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final member = filtered[index];
+                        return MemberListTile(
+                          member: member,
+                          onApprove: () => _confirmAction(
+                            context,
+                            title: 'Setujui Anggota',
+                            content:
+                                'Setujui ${member.username.isNotEmpty ? member.username : 'anggota ini'} untuk bergabung ke event ini?',
+                            confirmLabel: 'Setujui',
+                            confirmColor: Colors.green,
+                            onConfirm: () =>
+                                context.read<ProfileBloc>().add(
+                                  ProfileApproveMember(
+                                    registrationId: member.id,
+                                    eventId: widget.event.id,
+                                  ),
+                                ),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Tidak ada anggota',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 15,
-                            ),
+                          onReject: () => _confirmAction(
+                            context,
+                            title: 'Tolak Anggota',
+                            content:
+                                'Tolak pendaftaran ${member.username.isNotEmpty ? member.username : 'anggota ini'} dari event ini?',
+                            confirmLabel: 'Tolak',
+                            confirmColor: Colors.red,
+                            onConfirm: () =>
+                                context.read<ProfileBloc>().add(
+                                  ProfileRejectMember(
+                                    registrationId: member.id,
+                                    eventId: widget.event.id,
+                                  ),
+                                ),
                           ),
-                        ],
+                        );
+                      },
+                    ),
+                    if (isRefreshing)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                          color: AppPallete.buttonColor,
+                        ),
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final member = filtered[index];
-                      return MemberListTile(
-                        member: member,
-                        onApprove: () => _confirmAction(
-                          context,
-                          title: 'Setujui Anggota',
-                          content:
-                              'Setujui ${member.username} untuk bergabung ke event ini?',
-                          confirmLabel: 'Setujui',
-                          confirmColor: Colors.green,
-                          onConfirm: () => context.read<ProfileBloc>().add(
-                            ProfileApproveMember(
-                              registrationId: member.id,
-                              eventId: widget.event.id,
-                            ),
-                          ),
-                        ),
-                        onReject: () => _confirmAction(
-                          context,
-                          title: 'Tolak Anggota',
-                          content:
-                              'Tolak pendaftaran ${member.username} dari event ini?',
-                          confirmLabel: 'Tolak',
-                          confirmColor: Colors.red,
-                          onConfirm: () => context.read<ProfileBloc>().add(
-                            ProfileRejectMember(
-                              registrationId: member.id,
-                              eventId: widget.event.id,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-
-                return const SizedBox.shrink();
+                  ],
+                );
               },
             ),
           ),
@@ -222,7 +251,10 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
               Navigator.pop(ctx);
               onConfirm();
             },
-            child: Text(confirmLabel, style: const TextStyle(color: Colors.white)),
+            child: Text(
+              confirmLabel,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

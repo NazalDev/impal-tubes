@@ -21,10 +21,7 @@ abstract class EventRemoteDataSource {
     required String userId,
   });
 
-  Future<bool> isUserRegistered({
-    required int eventId,
-    required String userId,
-  });
+  Future<bool> isUserRegistered({required int eventId, required String userId});
 
   Future<List<PostDiscModel>> getComments({
     required int eventId,
@@ -68,6 +65,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     var query = supabase
         .from('event')
         .select()
+        .neq('status', 'finished')
         .order('start_at', ascending: true)
         .range(offset, offset + limit - 1);
 
@@ -76,6 +74,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
           .from('event')
           .select()
           .ilike('title', '%$searchQuery%')
+          .neq('status', 'finished')
           .order('start_at', ascending: true)
           .range(offset, offset + limit - 1);
     }
@@ -85,6 +84,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
           .from('event')
           .select()
           .eq('genre', statusFilter)
+          .neq('status', 'finished')
           .order('start_at', ascending: true)
           .range(offset, offset + limit - 1);
     }
@@ -98,6 +98,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
           .select()
           .ilike('title', '%$searchQuery%')
           .eq('genre', statusFilter)
+          .neq('status', 'finished')
           .order('start_at', ascending: true)
           .range(offset, offset + limit - 1);
     }

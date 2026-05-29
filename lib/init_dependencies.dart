@@ -7,6 +7,7 @@ import 'package:volync/features/auth/data/repositories/auth_repository_impl.dart
 import 'package:volync/features/auth/domain/repository/auth_repository.dart';
 import 'package:volync/features/auth/domain/usecase/current_user.dart';
 import 'package:volync/features/auth/domain/usecase/edit_profile_usecase.dart';
+import 'package:volync/features/auth/domain/usecase/reset_password_usecase.dart';
 import 'package:volync/features/auth/domain/usecase/user_login.dart';
 import 'package:volync/features/auth/domain/usecase/user_sign_up.dart';
 import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
@@ -54,6 +55,7 @@ void _initAuth() {
   serviceLocator.registerFactory(() => UserLogin(serviceLocator()));
   serviceLocator.registerFactory(() => CurrentUser(serviceLocator()));
   serviceLocator.registerFactory(() => EditProfileUsecase(serviceLocator()));
+  serviceLocator.registerFactory(() => ResetPasswordUsecase(serviceLocator()));
 
   serviceLocator.registerLazySingleton(
     () => AuthBloc(
@@ -62,6 +64,7 @@ void _initAuth() {
       currentUser: serviceLocator(),
       appUserCubit: serviceLocator(),
       editProfile: serviceLocator(),
+      resetPassword: serviceLocator(),
     ),
   );
 }

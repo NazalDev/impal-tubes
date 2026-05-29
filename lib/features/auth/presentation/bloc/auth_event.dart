@@ -26,14 +26,27 @@ final class AuthIsUserLoggedIn extends AuthEvent {}
 
 final class AuthEditProfile extends AuthEvent {
   final String? username;
-  final String? avatarUrl;
+  /// Local file to upload as the new avatar.  Null = keep existing.
+  final File? avatarFile;
   final String? oldPassword;
   final String? newPassword;
 
   AuthEditProfile({
     this.username,
-    this.avatarUrl,
+    this.avatarFile,
     this.oldPassword,
     this.newPassword,
+  });
+}
+
+final class AuthResetPassword extends AuthEvent {
+  final String username;
+  final String email;
+  final String newPassword;
+
+  AuthResetPassword({
+    required this.username,
+    required this.email,
+    required this.newPassword,
   });
 }

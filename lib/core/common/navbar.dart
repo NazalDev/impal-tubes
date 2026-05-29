@@ -75,7 +75,7 @@ class _NavigationBarCustomState extends State<NavigationBarCustom> {
         ],
       ),
 
-      floatingActionButton: _selectedIndex == 0
+      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 1
           ? SizedBox(
               width: 72,
               height: 72,

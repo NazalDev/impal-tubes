@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:volync/core/errors/exceptions.dart';
 import 'package:volync/features/profile/data/models/profile_event_model.dart';
@@ -5,6 +7,14 @@ import 'package:volync/features/profile/data/models/profile_member_model.dart';
 
 abstract interface class ProfileRemoteDataSource {
   Future<List<ProfileEventModel>> getUserEvents({required String userId});
+
+  /// Uploads [imageFile] to the `event-images` bucket and returns the public URL.
+  /// Pass `null` to skip the upload (returns `null`).
+  Future<String?> uploadEventImage({
+    required String eventId,
+    required File? imageFile,
+  });
+
   Future<void> updateEvent({
     required String eventId,
     required Map<String, dynamic> data,
@@ -41,6 +51,51 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
   }
 
+  // ── Event image upload ────────────────────────────────────────────────────
+  @override
+  Future<String?> uploadEventImage({
+    required String eventId,
+    required File? imageFile,
+  }) async {
+    if (imageFile == null) return null;
+    try {
+      final imageExtension = imageFile.path.split('.').last.toLowerCase();
+      final bytes = await imageFile.readAsBytes();
+      final storagePath = '$eventId/images';
+
+      await _supabase.storage
+          .from('event-images')
+          .uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: 'image/$imageExtension',
+            ),
+          );
+
+      String publicUrl = _supabase.storage
+          .from('event-images')
+          .getPublicUrl(storagePath);
+
+      publicUrl = '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+
+      return publicUrl;
+    } catch (e) {
+      throw ServerException(
+        'Gagal mengunggah gambar kegiatan: ${e.toString()}',
+      );
+    }
+  }
+
+  String get _currentUserId {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw const ServerException('Not authenticated');
+    }
+    return userId;
+  }
+
   @override
   Future<void> updateEvent({
     required String eventId,
@@ -50,7 +105,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       await _supabase
           .from('event')
           .update({...data, 'updated_at': DateTime.now().toIso8601String()})
-          .eq('id', eventId);
+          .eq('id', eventId)
+          .eq('user_id', _currentUserId);
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -59,7 +115,11 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<void> deleteEvent({required String eventId}) async {
     try {
-      await _supabase.from('event').delete().eq('id', eventId);
+      await _supabase
+          .from('event')
+          .delete()
+          .eq('id', eventId)
+          .eq('user_id', _currentUserId);
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -74,7 +134,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             'status': 'cancelled',
             'updated_at': DateTime.now().toIso8601String(),
           })
-          .eq('id', eventId);
+          .eq('id', eventId)
+          .eq('user_id', _currentUserId);
     } catch (e) {
       throw ServerException(e.toString());
     }

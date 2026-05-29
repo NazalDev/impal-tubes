@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:volync/core/errors/failure.dart';
 import 'package:volync/features/profile/domain/entity/profile_event_entity.dart';
@@ -9,9 +10,12 @@ abstract interface class ProfileRepository {
     required String userId,
   });
 
+  /// [imageFile] — if provided, uploads to Storage and includes the URL in
+  /// the update payload automatically.
   Future<Either<Failure, void>> updateEvent({
     required String eventId,
     required Map<String, dynamic> data,
+    File? imageFile,
   });
 
   Future<Either<Failure, void>> deleteEvent({required String eventId});

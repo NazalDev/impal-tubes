@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:volync/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:volync/core/common/navbar.dart';
@@ -64,6 +65,12 @@ class _MyAppState extends State<MyApp> {
       title: 'Volync',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [Locale('id', 'ID'), Locale('en', 'US')],
       home: BlocSelector<AppUserCubit, AppUserState, bool>(
         selector: (state) => state is AppUserLoggedIn,
         builder: (context, isLoggedIn) {

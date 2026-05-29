@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:volync/core/theme/app_pallete.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 
 // ─────────────────────────────────────────────
-// Genre list — add new genres here easily
+// Genre list
 // ─────────────────────────────────────────────
 const List<String> kEventGenres = [
-  'Seminar',
-  'Penggalangan Dana',
-  'Olahraga',
-  'Lingkungan',
-  'Seni & Budaya',
-  'Pendidikan',
-  'Sosial',
-  'Kesehatan',
-  'Teknologi',
-  'Lainnya',
+  'seminar',
+  'penggalangan dana',
+  'olahraga',
+  'lingkungan',
+  'seni & budaya',
+  'pendidikan',
+  'sosial',
+  'kesehatan',
+  'teknologi',
+  'lainnya',
 ];
 
 // ─────────────────────────────────────────────
-// Validation helpers  (pure Dart, no framework)
+// Validation helpers
 // ─────────────────────────────────────────────
 class _Validators {
   static String? required(String? value, String fieldName) {
@@ -41,75 +42,11 @@ class _Validators {
     if (n > 10000) return 'Kuota maksimal 10.000 anggota.';
     return null;
   }
-
-  static String? day(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi hari.';
-    final d = int.tryParse(value.trim());
-    if (d == null || d < 1 || d > 31) return 'Hari tidak valid (1–31).';
-    return null;
-  }
-
-  static String? month(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi bulan.';
-    final m = int.tryParse(value.trim());
-    if (m == null || m < 1 || m > 12) return 'Bulan tidak valid (1–12).';
-    return null;
-  }
-
-  static String? year(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi tahun.';
-    final y = int.tryParse(value.trim());
-    final now = DateTime.now().year;
-    if (y == null || y < now || y > now + 5) {
-      return 'Tahun tidak valid ($now–${now + 5}).';
-    }
-    return null;
-  }
-
-  static String? hour(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi jam.';
-    final h = int.tryParse(value.trim());
-    if (h == null || h < 0 || h > 23) return 'Jam tidak valid (0–23).';
-    return null;
-  }
-
-  static String? minute(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi menit.';
-    final m = int.tryParse(value.trim());
-    if (m == null || m < 0 || m > 59) return 'Menit tidak valid (0–59).';
-    return null;
-  }
-
-  static String? durationDays(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi durasi.';
-    final d = int.tryParse(value.trim());
-    if (d == null || d < 1) return 'Durasi minimal 1 hari.';
-    if (d > 30) return 'Durasi maksimal 30 hari.';
-    return null;
-  }
-
-  static String? dateCombo(String day, String month, String year) {
-    final d = int.tryParse(day.trim());
-    final m = int.tryParse(month.trim());
-    final y = int.tryParse(year.trim());
-    if (d == null || m == null || y == null) return null;
-    try {
-      final date = DateTime(y, m, d);
-      if (date.month != m) return 'Tanggal tidak valid untuk bulan tersebut.';
-      if (date.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
-        return 'Tanggal kegiatan tidak boleh di masa lalu.';
-      }
-    } catch (_) {
-      return 'Tanggal tidak valid.';
-    }
-    return null;
-  }
 }
 
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
-
 class PostEventPage extends StatefulWidget {
   const PostEventPage({super.key});
 
@@ -127,20 +64,20 @@ class _PostEventPageState extends State<PostEventPage> {
   final _quotaController = TextEditingController();
 
   // Start date/time
-  final _startDayController = TextEditingController();
-  final _startMonthController = TextEditingController();
-  final _startYearController = TextEditingController();
-  final _startHourController = TextEditingController();
-  final _startMinuteController = TextEditingController();
+  DateTime? _startDate;
+  TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
 
-  // Duration in days
-  final _durationDaysController = TextEditingController();
+  // End date/time
+  DateTime? _endDate;
+  TimeOfDay _endTime = const TimeOfDay(hour: 17, minute: 0);
+
+  bool _endDateSetByUser = false;
 
   String? _selectedGenre;
   bool _agreedToTerms = false;
   bool _termsError = false;
   bool _hasAttemptedSubmit = false;
-  String? _dateComboError;
+  String? _dateError;
 
   @override
   void dispose() {
@@ -149,29 +86,120 @@ class _PostEventPageState extends State<PostEventPage> {
     _descriptionController.dispose();
     _locationController.dispose();
     _quotaController.dispose();
-    _startDayController.dispose();
-    _startMonthController.dispose();
-    _startYearController.dispose();
-    _startHourController.dispose();
-    _startMinuteController.dispose();
-    _durationDaysController.dispose();
     super.dispose();
   }
 
-  // ── Submit ───────────────────────────────────
+  // ── Date/time helpers ─────────────────────
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Pilih Tanggal';
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  String _formatTime(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  DateTime _combine(DateTime date, TimeOfDay time) {
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickStartDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 5)),
+      locale: const Locale('id', 'ID'),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      _dateError = null;
+      final previousStart = _startDate;
+      _startDate = picked;
+
+      if (previousStart == null) {
+        _endDate = picked;
+        _endDateSetByUser = false;
+        return;
+      }
+
+      if (!_endDateSetByUser) {
+        _endDate = picked;
+      } else if (_endDate != null && picked.isAfter(_endDate!)) {
+        _endDate = picked;
+        _endDateSetByUser = false;
+      }
+    });
+  }
+
+  Future<void> _pickStartTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _startTime,
+    );
+    if (picked != null) setState(() => _startTime = picked);
+  }
+
+  Future<void> _pickEndDate() async {
+    final now = DateTime.now();
+    final initial = _endDate ?? _startDate ?? now;
+    final firstDate = _startDate ?? now;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(firstDate) ? firstDate : initial,
+      firstDate: firstDate,
+      lastDate: now.add(const Duration(days: 365 * 5)),
+      locale: const Locale('id', 'ID'),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      _endDate = picked;
+      _endDateSetByUser = true;
+      _dateError = null;
+    });
+  }
+
+  Future<void> _pickEndTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _endTime,
+    );
+    if (picked != null) setState(() => _endTime = picked);
+  }
+
+  // ── Submit ──────────────────────────────────
   void _submitEvent() {
     setState(() {
       _hasAttemptedSubmit = true;
       _termsError = !_agreedToTerms;
-      _dateComboError = _Validators.dateCombo(
-        _startDayController.text,
-        _startMonthController.text,
-        _startYearController.text,
-      );
     });
 
+    if (_startDate == null || _endDate == null) {
+      setState(() => _dateError = 'Tanggal mulai dan selesai harus diisi.');
+    } else {
+      final startDt = _combine(_startDate!, _startTime);
+      final endDt = _combine(_endDate!, _endTime);
+      if (endDt.isBefore(startDt) || endDt.isAtSameMomentAs(startDt)) {
+        setState(() => _dateError = 'Waktu selesai harus setelah waktu mulai.');
+      } else {
+        setState(() => _dateError = null);
+      }
+    }
+
     final formValid = _formKey.currentState?.validate() ?? false;
-    if (!formValid || _termsError || _dateComboError != null || _selectedGenre == null) {
+    if (!formValid ||
+        _termsError ||
+        _dateError != null ||
+        _startDate == null ||
+        _endDate == null ||
+        _selectedGenre == null) {
       _showErrorSnackbar('Harap perbaiki kesalahan pada form terlebih dahulu.');
       return;
     }
@@ -182,15 +210,8 @@ class _PostEventPageState extends State<PostEventPage> {
       return;
     }
 
-    final day = int.parse(_startDayController.text.trim());
-    final month = int.parse(_startMonthController.text.trim());
-    final year = int.parse(_startYearController.text.trim());
-    final hour = int.tryParse(_startHourController.text.trim()) ?? 0;
-    final minute = int.tryParse(_startMinuteController.text.trim()) ?? 0;
-    final durationDays = int.parse(_durationDaysController.text.trim());
-
-    final startAt = DateTime(year, month, day, hour, minute);
-    final endAt = startAt.add(Duration(days: durationDays));
+    final startAt = _combine(_startDate!, _startTime);
+    final endAt = _combine(_endDate!, _endTime);
     final now = DateTime.now();
 
     final event = EventEntity(
@@ -206,6 +227,7 @@ class _PostEventPageState extends State<PostEventPage> {
       updatedAt: now,
       id: 0,
       genre: _selectedGenre,
+      quota: int.tryParse(_quotaController.text.trim()),
     );
 
     context.read<EventBloc>().add(CreateEvent(event));
@@ -228,14 +250,14 @@ class _PostEventPageState extends State<PostEventPage> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const Icon(Icons.error_outline, color: AppPallete.whiteColor, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(message, style: const TextStyle(fontSize: 13)),
             ),
           ],
         ),
-        backgroundColor: Colors.red[700],
+        backgroundColor: AppPallete.errorColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
@@ -257,12 +279,12 @@ class _PostEventPageState extends State<PostEventPage> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: Colors.teal[50],
+                color: AppPallete.backgroundColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.check_circle,
-                color: Colors.teal[700],
+                color: AppPallete.focusedColor,
                 size: 40,
               ),
             ),
@@ -275,7 +297,7 @@ class _PostEventPageState extends State<PostEventPage> {
             const SizedBox(height: 8),
             Text(
               'Kegiatan Anda sedang dalam proses peninjauan.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: AppPallete.borderColor, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
@@ -285,12 +307,12 @@ class _PostEventPageState extends State<PostEventPage> {
             width: double.infinity,
             child: TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // close dialog
-                Navigator.of(context).pop(); // back to list
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
               style: TextButton.styleFrom(
-                backgroundColor: Colors.teal,
-                foregroundColor: Colors.white,
+                backgroundColor: AppPallete.focusedColor,
+                foregroundColor: AppPallete.whiteColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -307,30 +329,30 @@ class _PostEventPageState extends State<PostEventPage> {
   InputDecoration _fieldDecoration(String hint, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+      hintStyle: TextStyle(color: AppPallete.borderColor, fontSize: 13),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppPallete.whiteColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: AppPallete.borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: AppPallete.borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.teal, width: 1.5),
+        borderSide: BorderSide(color: AppPallete.focusedColor, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.red[400]!, width: 1.2),
+        borderSide: BorderSide(color: AppPallete.errorColor, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.red[600]!, width: 1.5),
+        borderSide: BorderSide(color: AppPallete.errorColor, width: 1.5),
       ),
       errorStyle: const TextStyle(fontSize: 11),
     );
@@ -343,13 +365,13 @@ class _PostEventPageState extends State<PostEventPage> {
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: AppPallete.defaultTextColor,
         ),
         children: [
           if (required)
-            const TextSpan(
+            TextSpan(
               text: ' *',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppPallete.errorColor),
             ),
         ],
       ),
@@ -367,10 +389,10 @@ class _PostEventPageState extends State<PostEventPage> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppPallete.whiteColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: hasError ? Colors.red[400]! : Colors.grey[300]!,
+              color: hasError ? AppPallete.errorColor : AppPallete.borderColor,
               width: hasError ? 1.2 : 1.0,
             ),
           ),
@@ -382,7 +404,7 @@ class _PostEventPageState extends State<PostEventPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Text(
                   'Pilih Genre',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  style: TextStyle(color: AppPallete.borderColor, fontSize: 13),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -402,146 +424,96 @@ class _PostEventPageState extends State<PostEventPage> {
             padding: const EdgeInsets.only(top: 4, left: 4),
             child: Text(
               'Genre tidak boleh kosong.',
-              style: TextStyle(color: Colors.red[700], fontSize: 11),
+              style: TextStyle(color: AppPallete.errorColor, fontSize: 11),
             ),
           ),
       ],
     );
   }
 
-  // ── Start date + time field ──────────────────
-  Widget _buildStartDateTimeField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Date row: DD / MM / YYYY
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _startDayController,
-                keyboardType: TextInputType.number,
-                maxLength: 2,
-                textAlign: TextAlign.center,
-                decoration: _fieldDecoration('DD').copyWith(counterText: ''),
-                validator: _Validators.day,
-                autovalidateMode: _autovalidate,
-                onChanged: (_) => setState(() => _dateComboError = null),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextFormField(
-                controller: _startMonthController,
-                keyboardType: TextInputType.number,
-                maxLength: 2,
-                textAlign: TextAlign.center,
-                decoration: _fieldDecoration('MM').copyWith(counterText: ''),
-                validator: _Validators.month,
-                autovalidateMode: _autovalidate,
-                onChanged: (_) => setState(() => _dateComboError = null),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: _startYearController,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                textAlign: TextAlign.center,
-                decoration: _fieldDecoration('YYYY').copyWith(counterText: ''),
-                validator: _Validators.year,
-                autovalidateMode: _autovalidate,
-                onChanged: (_) => setState(() => _dateComboError = null),
-              ),
-            ),
-          ],
-        ),
-        if (_dateComboError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Text(
-              _dateComboError!,
-              style: TextStyle(color: Colors.red[700], fontSize: 11),
-            ),
-          ),
-        const SizedBox(height: 8),
-        // Time row: HH : MM
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _startHourController,
-                keyboardType: TextInputType.number,
-                maxLength: 2,
-                textAlign: TextAlign.center,
-                decoration: _fieldDecoration('HH').copyWith(counterText: ''),
-                validator: _Validators.hour,
-                autovalidateMode: _autovalidate,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Text(
-                ':',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            Expanded(
-              child: TextFormField(
-                controller: _startMinuteController,
-                keyboardType: TextInputType.number,
-                maxLength: 2,
-                textAlign: TextAlign.center,
-                decoration: _fieldDecoration('MM').copyWith(counterText: ''),
-                validator: _Validators.minute,
-                autovalidateMode: _autovalidate,
-              ),
-            ),
-            const Expanded(flex: 2, child: SizedBox()),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 2, left: 2),
-          child: Text(
-            'Format 24 jam (contoh: 09:30 atau 14:00)',
-            style: TextStyle(color: Colors.grey[500], fontSize: 11),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Duration days field ──────────────────────
-  Widget _buildDurationField() {
+  // ── Date+Time picker row ─────────────────────
+  Widget _buildDateTimeRow({
+    required String label,
+    required DateTime? date,
+    required TimeOfDay time,
+    required VoidCallback onPickDate,
+    required VoidCallback onPickTime,
+    bool showError = false,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 100,
-          child: TextFormField(
-            controller: _durationDaysController,
-            keyboardType: TextInputType.number,
-            maxLength: 2,
-            textAlign: TextAlign.center,
-            decoration: _fieldDecoration('1').copyWith(counterText: ''),
-            validator: _Validators.durationDays,
-            autovalidateMode: _autovalidate,
+        Expanded(
+          flex: 3,
+          child: GestureDetector(
+            onTap: onPickDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppPallete.whiteColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: showError ? AppPallete.errorColor : AppPallete.borderColor,
+                  width: showError ? 1.2 : 1.0,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: date == null
+                        ? AppPallete.borderColor
+                        : AppPallete.focusedColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _formatDate(date),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: date == null
+                            ? AppPallete.borderColor
+                            : AppPallete.defaultTextColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 12),
-        Padding(
-          padding: const EdgeInsets.only(top: 14),
-          child: Text(
-            'hari  (maks. 30 hari)',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: onPickTime,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppPallete.whiteColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppPallete.borderColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time_outlined,
+                    size: 16,
+                    color: AppPallete.focusedColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _formatTime(time),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppPallete.defaultTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -566,21 +538,22 @@ class _PostEventPageState extends State<PostEventPage> {
           final isLoading = state is EventCreating;
 
           return Scaffold(
-            backgroundColor: const Color(0xFFE8F6F3),
+            backgroundColor: AppPallete.backgroundColor,
             appBar: AppBar(
-              surfaceTintColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              backgroundColor: Colors.transparent,
+              surfaceTintColor: AppPallete.transparentColor,
+              shadowColor: AppPallete.transparentColor,
+              backgroundColor: AppPallete.transparentColor,
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new, color: Colors.teal[900]),
+                icon: Icon(Icons.arrow_back_ios_new,
+                    color: AppPallete.backButtonColor),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
                 'Tambah Kegiatan',
                 style: TextStyle(
-                  color: Colors.teal[900],
+                  color: AppPallete.backButtonColor,
                   fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
@@ -644,7 +617,7 @@ class _PostEventPageState extends State<PostEventPage> {
                         'Lokasi Kegiatan',
                         suffixIcon: Icon(
                           Icons.location_on_outlined,
-                          color: Colors.grey[500],
+                          color: AppPallete.borderColor,
                         ),
                       ),
                       validator: (v) =>
@@ -653,14 +626,73 @@ class _PostEventPageState extends State<PostEventPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // ── Start date + time ─────────────────────────
                     _buildLabel('Tanggal & Jam Mulai'),
                     const SizedBox(height: 6),
-                    _buildStartDateTimeField(),
+                    _buildDateTimeRow(
+                      label: 'Mulai',
+                      date: _startDate,
+                      time: _startTime,
+                      onPickDate: _pickStartDate,
+                      onPickTime: _pickStartTime,
+                      showError: _hasAttemptedSubmit && _startDate == null,
+                    ),
+                    if (_hasAttemptedSubmit && _startDate == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 4),
+                        child: Text(
+                          'Tanggal mulai harus diisi.',
+                          style: TextStyle(
+                            color: AppPallete.errorColor,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 16),
 
-                    _buildLabel('Durasi Kegiatan'),
+                    // ── End date + time ───────────────────────────
+                    _buildLabel('Tanggal & Jam Selesai'),
                     const SizedBox(height: 6),
-                    _buildDurationField(),
+                    _buildDateTimeRow(
+                      label: 'Selesai',
+                      date: _endDate,
+                      time: _endTime,
+                      onPickDate: _pickEndDate,
+                      onPickTime: _pickEndTime,
+                      showError: _hasAttemptedSubmit && _endDate == null,
+                    ),
+                    if (_hasAttemptedSubmit && _endDate == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 4),
+                        child: Text(
+                          'Tanggal selesai harus diisi.',
+                          style: TextStyle(
+                            color: AppPallete.errorColor,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    if (_dateError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 4),
+                        child: Text(
+                          _dateError!,
+                          style: TextStyle(
+                            color: AppPallete.errorColor,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, left: 2),
+                      child: Text(
+                        'Tanggal selesai otomatis sama dengan tanggal mulai',
+                        style: TextStyle(
+                          color: AppPallete.borderColor,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
 
                     _buildLabel('Kuota Anggota'),
@@ -674,18 +706,18 @@ class _PostEventPageState extends State<PostEventPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Terms & Conditions ─────────
+                    // ── Terms & Conditions ─────────────────────────
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: _termsError
-                            ? Colors.red[50]
+                            ? AppPallete.errorColor.withOpacity(0.05)
                             : const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _termsError
-                              ? Colors.red[300]!
-                              : Colors.orange[200]!,
+                              ? AppPallete.errorColor.withOpacity(0.5)
+                              : Colors.orange.shade200,
                         ),
                       ),
                       child: Column(
@@ -703,7 +735,7 @@ class _PostEventPageState extends State<PostEventPage> {
                                     _agreedToTerms = val ?? false;
                                     if (_agreedToTerms) _termsError = false;
                                   }),
-                                  activeColor: Colors.teal,
+                                  activeColor: AppPallete.focusedColor,
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
@@ -720,7 +752,7 @@ class _PostEventPageState extends State<PostEventPage> {
                                   'sesuai dengan aturan/kebijakan Universitas Telkom.',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey[700],
+                                    color: AppPallete.blackColor,
                                   ),
                                 ),
                               ),
@@ -732,7 +764,7 @@ class _PostEventPageState extends State<PostEventPage> {
                               child: Text(
                                 'Anda harus menyetujui pernyataan ini untuk melanjutkan.',
                                 style: TextStyle(
-                                  color: Colors.red[700],
+                                  color: AppPallete.errorColor,
                                   fontSize: 11,
                                 ),
                               ),
@@ -749,9 +781,10 @@ class _PostEventPageState extends State<PostEventPage> {
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _submitEvent,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.teal[200],
+                          backgroundColor: AppPallete.focusedColor,
+                          foregroundColor: AppPallete.whiteColor,
+                          disabledBackgroundColor:
+                              AppPallete.buttonColor.withOpacity(0.5),
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
@@ -763,7 +796,7 @@ class _PostEventPageState extends State<PostEventPage> {
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppPallete.whiteColor,
                                 ),
                               )
                             : const Text(

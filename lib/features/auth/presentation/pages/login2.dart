@@ -8,6 +8,7 @@ import 'package:volync/core/theme/app_pallete.dart';
 import 'package:volync/core/common/image_show.dart';
 import 'package:volync/core/utils/show_popup.dart';
 import 'package:volync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:volync/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:volync/features/auth/presentation/widgets/auth_button.dart';
 import 'package:volync/features/auth/presentation/widgets/auth_field.dart';
 
@@ -180,14 +181,22 @@ class _LoginEmailState extends State<LoginEmail> {
                       },
                     ),
                     const SizedBox(height: 32),
-                    RichText(
-                      text: TextSpan(
-                        text: 'Lupa Password?',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppPallete.linkColor,
-                          fontWeight: FontWeight.w500,
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordPage(),
                         ),
-                        // TODO: Implement the forgot password page
+                      ),
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Lupa Password?',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                color: AppPallete.linkColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
                       ),
                     ),
                   ],
