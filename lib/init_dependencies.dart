@@ -27,14 +27,13 @@ import 'package:volync/features/profile/profile_injector.dart';
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
-  _initAuth();
-
   final supabase = await Supabase.initialize(
     url: AppSecrets.supabaseUrl,
     anonKey: AppSecrets.supabaseAnonKey,
   );
   serviceLocator.registerLazySingleton(() => supabase.client);
 
+  _initAuth();
   _initEvent();
   initProfile();
   initHistory();
@@ -85,7 +84,9 @@ void _initEvent() {
   serviceLocator.registerFactory(() => GetEventsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => CreateEventUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => RegistEventUsecase(serviceLocator()));
-  serviceLocator.registerFactory(() => GetCalendarEventsUseCase(serviceLocator()));
+  serviceLocator.registerFactory(
+    () => GetCalendarEventsUseCase(serviceLocator()),
+  );
   serviceLocator.registerFactory(() => GetPostDiscsUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => GetRepliesUseCase(serviceLocator()));
   serviceLocator.registerFactory(() => PostCommentUseCase(serviceLocator()));

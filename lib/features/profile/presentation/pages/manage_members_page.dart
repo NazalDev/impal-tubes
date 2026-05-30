@@ -19,7 +19,7 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
   String _filter = 'all';
 
   /// Cache the last successfully loaded list so the UI stays visible while
-  /// the bloc is in Loading / ActionSuccess states between approve/reject.
+  /// the bloc is in Loading state between approve/reject.
   List<ProfileMemberEntity> _cachedMembers = [];
   bool _initialLoadDone = false;
 
@@ -27,8 +27,8 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
   void initState() {
     super.initState();
     context.read<ProfileBloc>().add(
-      ProfileLoadEventMembers(eventId: widget.event.id),
-    );
+          ProfileLoadEventMembers(eventId: widget.event.id),
+        );
   }
 
   @override
@@ -61,7 +61,8 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
         children: [
           Container(
             color: AppPallete.cardBackgroundColor,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -107,18 +108,21 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
                     ),
                   );
                 }
-                if (state is ProfileActionSuccess) {
+
+                // ProfileMemberActionSuccess is emitted by approve/reject.
+                // The bloc already re-fetches members inline, so we only show
+                // the snackbar here — no need to dispatch another load event.
+                if (state is ProfileMemberActionSuccess &&
+                    state.eventId == widget.event.id) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(state.message),
                       backgroundColor: Colors.green,
                     ),
                   );
-                  // Reload member list after every approve / reject
-                  context.read<ProfileBloc>().add(
-                    ProfileLoadEventMembers(eventId: widget.event.id),
-                  );
                 }
+
+                // Cache the fresh member list whenever it arrives.
                 if (state is ProfileEventMembersLoaded &&
                     state.eventId == widget.event.id) {
                   setState(() {
@@ -139,8 +143,8 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
                 final filtered = _filter == 'all'
                     ? _cachedMembers
                     : _cachedMembers
-                          .where((m) => m.status == _filter)
-                          .toList();
+                        .where((m) => m.status == _filter)
+                        .toList();
 
                 if (_initialLoadDone && filtered.isEmpty) {
                   return Center(
@@ -183,11 +187,11 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
                             confirmColor: Colors.green,
                             onConfirm: () =>
                                 context.read<ProfileBloc>().add(
-                                  ProfileApproveMember(
-                                    registrationId: member.id,
-                                    eventId: widget.event.id,
-                                  ),
-                                ),
+                                      ProfileApproveMember(
+                                        registrationId: member.id,
+                                        eventId: widget.event.id,
+                                      ),
+                                    ),
                           ),
                           onReject: () => _confirmAction(
                             context,
@@ -198,11 +202,11 @@ class _ManageMembersPageState extends State<ManageMembersPage> {
                             confirmColor: Colors.red,
                             onConfirm: () =>
                                 context.read<ProfileBloc>().add(
-                                  ProfileRejectMember(
-                                    registrationId: member.id,
-                                    eventId: widget.event.id,
-                                  ),
-                                ),
+                                      ProfileRejectMember(
+                                        registrationId: member.id,
+                                        eventId: widget.event.id,
+                                      ),
+                                    ),
                           ),
                         );
                       },
@@ -281,13 +285,13 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade400,
-          ),
+          border:
+              Border.all(color: isSelected ? color : Colors.grey.shade400),
         ),
         child: Text(
           label,

@@ -15,8 +15,9 @@ class MemberListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPending = member.status == 'pending';
-    final isApproved = member.status == 'approved';
+    final status = member.status.trim().toLowerCase();
+    final isPending = status == 'pending';
+    final isApproved = status == 'approved';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

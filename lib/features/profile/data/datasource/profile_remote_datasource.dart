@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:volync/core/errors/exceptions.dart';
 import 'package:volync/features/profile/data/models/profile_event_model.dart';
@@ -33,6 +32,14 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   final SupabaseClient _supabase;
 
   ProfileRemoteDataSourceImpl(this._supabase);
+
+  String get _currentUserId {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw const ServerException('Not authenticated');
+    }
+    return userId;
+  }
 
   @override
   Future<List<ProfileEventModel>> getUserEvents({
@@ -88,14 +95,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
   }
 
-  String get _currentUserId {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
-      throw const ServerException('Not authenticated');
-    }
-    return userId;
-  }
-
   @override
   Future<void> updateEvent({
     required String eventId,
@@ -146,17 +145,13 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String eventId,
   }) async {
     try {
+      // Use explicit column names to avoid any ambiguity in release builds.
       final response = await _supabase
           .from('registration')
-          .select('''
-            *,
-            user (
-              id,
-              username,
-              email,
-              avatar_url
-            )
-          ''')
+          .select(
+            'id, event_id, user_id, status, registered_at, '
+            'user:user_id ( id, username, email, avatar_url )',
+          )
           .eq('event_id', eventId)
           .order('registered_at', ascending: false);
 
@@ -172,10 +167,41 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String status,
   }) async {
     try {
+      final userId = _currentUserId;
+
+      // Verify the caller is the event owner before updating. This makes the
+      // operation safe even if Supabase RLS policies are not yet configured,
+      // and surfaces a clear error in release builds instead of a silent no-op.
+      final registration = await _supabase
+          .from('registration')
+          .select('event_id')
+          .eq('id', int.tryParse(registrationId) ?? registrationId)
+          .single();
+
+      final eventId = registration['event_id'];
+      if (eventId == null) {
+        throw const ServerException('Registrasi tidak ditemukan');
+      }
+
+      final event = await _supabase
+          .from('event')
+          .select('id')
+          .eq('id', eventId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (event == null) {
+        throw const ServerException(
+          'Anda tidak memiliki izin untuk mengubah status anggota ini',
+        );
+      }
+
       await _supabase
           .from('registration')
           .update({'status': status})
           .eq('id', registrationId);
+    } on ServerException {
+      rethrow;
     } catch (e) {
       throw ServerException(e.toString());
     }

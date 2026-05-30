@@ -49,9 +49,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteEvent({
-    required String eventId,
-  }) async {
+  Future<Either<Failure, void>> deleteEvent({required String eventId}) async {
     try {
       await _remoteDataSource.deleteEvent(eventId: eventId);
       return right(null);
@@ -61,9 +59,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, void>> cancelEvent({
-    required String eventId,
-  }) async {
+  Future<Either<Failure, void>> cancelEvent({required String eventId}) async {
     try {
       await _remoteDataSource.cancelEvent(eventId: eventId);
       return right(null);
@@ -77,9 +73,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required String eventId,
   }) async {
     try {
-      final members = await _remoteDataSource.getEventMembers(
-        eventId: eventId,
-      );
+      final members = await _remoteDataSource.getEventMembers(eventId: eventId);
       return right(members);
     } on ServerException catch (e) {
       return left(Failure(e.message));

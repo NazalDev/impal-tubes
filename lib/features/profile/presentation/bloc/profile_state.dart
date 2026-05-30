@@ -20,10 +20,19 @@ final class ProfileEventMembersLoaded extends ProfileState {
   ProfileEventMembersLoaded({required this.members, required this.eventId});
 }
 
-// Any write operation succeeded (delete, cancel, update, approve/reject)
+// Any write operation succeeded (delete, cancel, update)
 final class ProfileActionSuccess extends ProfileState {
   final String message;
   ProfileActionSuccess(this.message);
+}
+
+// Approve / reject succeeded — carries the eventId so the UI can show a
+// snackbar. The bloc re-fetches members inline, so the page must NOT dispatch
+// another ProfileLoadEventMembers in response to this state.
+final class ProfileMemberActionSuccess extends ProfileState {
+  final String message;
+  final String eventId;
+  ProfileMemberActionSuccess({required this.message, required this.eventId});
 }
 
 final class ProfileSignOutSuccess extends ProfileState {}

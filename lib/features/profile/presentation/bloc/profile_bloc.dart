@@ -32,14 +32,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     required GetEventMembersUseCase getEventMembers,
     required UpdateMemberStatusUseCase updateMemberStatus,
     required SignOutUseCase signOut,
-  }) : _getUserEvents = getUserEvents,
-       _updateEvent = updateEvent,
-       _deleteEvent = deleteEvent,
-       _cancelEvent = cancelEvent,
-       _getEventMembers = getEventMembers,
-       _updateMemberStatus = updateMemberStatus,
-       _signOut = signOut,
-       super(ProfileInitial()) {
+  })  : _getUserEvents = getUserEvents,
+        _updateEvent = updateEvent,
+        _deleteEvent = deleteEvent,
+        _cancelEvent = cancelEvent,
+        _getEventMembers = getEventMembers,
+        _updateMemberStatus = updateMemberStatus,
+        _signOut = signOut,
+        super(ProfileInitial()) {
     on<ProfileLoadUserEvents>(_onLoadUserEvents);
     on<ProfileUpdateEvent>(_onUpdateEvent);
     on<ProfileDeleteEvent>(_onDeleteEvent);
@@ -133,11 +133,27 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         status: 'approved',
       ),
     );
-    res.fold(
-      (failure) => emit(ProfileFailure(failure.message)),
-      (_) {
-        emit(ProfileActionSuccess('Anggota berhasil disetujui'));
-        add(ProfileLoadEventMembers(eventId: event.eventId));
+    await res.fold(
+      (failure) async => emit(ProfileFailure(failure.message)),
+      (_) async {
+        // Emit success first, then fetch fresh members — all within the same
+        // handler so we never call add() while the emitter is still active.
+        emit(ProfileMemberActionSuccess(
+          message: 'Anggota berhasil disetujui',
+          eventId: event.eventId,
+        ));
+        final membersRes = await _getEventMembers(
+          GetEventMembersParams(eventId: event.eventId),
+        );
+        membersRes.fold(
+          (failure) => emit(ProfileFailure(failure.message)),
+          (members) => emit(
+            ProfileEventMembersLoaded(
+              members: members,
+              eventId: event.eventId,
+            ),
+          ),
+        );
       },
     );
   }
@@ -153,11 +169,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         status: 'rejected',
       ),
     );
-    res.fold(
-      (failure) => emit(ProfileFailure(failure.message)),
-      (_) {
-        emit(ProfileActionSuccess('Anggota berhasil ditolak'));
-        add(ProfileLoadEventMembers(eventId: event.eventId));
+    await res.fold(
+      (failure) async => emit(ProfileFailure(failure.message)),
+      (_) async {
+        // Same pattern: emit action success then re-fetch inline.
+        emit(ProfileMemberActionSuccess(
+          message: 'Anggota berhasil ditolak',
+          eventId: event.eventId,
+        ));
+        final membersRes = await _getEventMembers(
+          GetEventMembersParams(eventId: event.eventId),
+        );
+        membersRes.fold(
+          (failure) => emit(ProfileFailure(failure.message)),
+          (members) => emit(
+            ProfileEventMembersLoaded(
+              members: members,
+              eventId: event.eventId,
+            ),
+          ),
+        );
       },
     );
   }

@@ -25,7 +25,7 @@ class ProfileMemberModel extends ProfileMemberEntity {
       username: user['username'] as String? ?? '',
       email: user['email'] as String? ?? '',
       avatarUrl: user['avatar_url'] as String? ?? 'default',
-      status: map['status'] as String,
+      status: _safeStringCast(map['status']).trim().toLowerCase(),
       registeredAt: map['registered_at'] != null
           ? DateTime.parse(map['registered_at'] as String)
           : null,
