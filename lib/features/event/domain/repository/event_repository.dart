@@ -10,6 +10,7 @@ abstract class EventRepository {
   });
 
   Future<void> createEvent(EventEntity event);
+
   Future<void> registerEvent(int eventId, String userId);
 
   /// Fetches every event joined with the current user's registration row.
@@ -17,7 +18,7 @@ abstract class EventRepository {
     required String userId,
   });
 
-  /// Returns true if the user already has a registration row for [eventId].
+  /// Returns `true` if the user already has a registration row for [eventId].
   Future<bool> isUserRegistered({
     required int eventId,
     required String userId,

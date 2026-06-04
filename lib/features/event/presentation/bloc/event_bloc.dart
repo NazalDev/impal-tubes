@@ -1,25 +1,16 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:volync/features/event/domain/entity/event.dart';
+import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/usecase/create_event_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/get_events_usecase.dart';
 import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
-import 'package:volync/features/event/domain/repository/event_repository.dart';
 
-part 'event_state.dart';
 part 'event_event.dart';
+part 'event_state.dart';
 
 class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
-  final GetEventsUseCase getEventsUseCase;
-  final CreateEventUseCase createEventUseCase;
-  final RegistEventUsecase registerEventUseCase;
-  final GetCalendarEventsUseCase getCalendarEventsUseCase;
-  final EventRepository eventRepository;
-
-  static const int _pageSize = 10;
-  int _offset = 0;
-
   EventBloc({
     required this.getEventsUseCase,
     required this.createEventUseCase,
@@ -36,20 +27,28 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     on<LoadCalendarEvents>(_onLoadCalendarEvents);
   }
 
+  final GetEventsUseCase getEventsUseCase;
+  final CreateEventUseCase createEventUseCase;
+  final RegistEventUsecase registerEventUseCase;
+  final GetCalendarEventsUseCase getCalendarEventsUseCase;
+  final EventRepository eventRepository;
+
+  static const int _pageSize = 10;
+  int _offset = 0;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
   Future<void> _onResetState(
     ResetEventState event,
     Emitter<EventBlocState> emit,
   ) async {
-    final current = state;
-    if (current is EventLoaded) {
-      emit(
-        EventLoaded(
-          events: current.events,
-          hasMore: current.hasMore,
-          activeFilter: current.activeFilter,
-          searchQuery: current.searchQuery,
-        ),
-      );
+    if (state case final EventLoaded current) {
+      emit(EventLoaded(
+        events: current.events,
+        hasMore: current.hasMore,
+        activeFilter: current.activeFilter,
+        searchQuery: current.searchQuery,
+      ));
     }
   }
 
@@ -57,14 +56,9 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     LoadEvents event,
     Emitter<EventBlocState> emit,
   ) async {
-    final currentState = state;
-
-    final activeFilter = currentState is EventLoaded
-        ? currentState.activeFilter
-        : 'Semua';
-    final searchQuery = currentState is EventLoaded
-        ? currentState.searchQuery
-        : '';
+    final loaded = state is EventLoaded ? state as EventLoaded : null;
+    final activeFilter = loaded?.activeFilter ?? 'Semua';
+    final searchQuery = loaded?.searchQuery ?? '';
 
     if (event.reset) {
       _offset = 0;
@@ -85,14 +79,12 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
 
       _offset += fetched.length;
 
-      emit(
-        EventLoaded(
-          events: [...existing, ...fetched],
-          hasMore: fetched.length == _pageSize,
-          activeFilter: event.statusFilter ?? activeFilter,
-          searchQuery: event.searchQuery ?? searchQuery,
-        ),
-      );
+      emit(EventLoaded(
+        events: [...existing, ...fetched],
+        hasMore: fetched.length == _pageSize,
+        activeFilter: event.statusFilter ?? activeFilter,
+        searchQuery: event.searchQuery ?? searchQuery,
+      ));
     } catch (e) {
       emit(EventError(e.toString()));
     }
@@ -102,34 +94,28 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
     SearchEvents event,
     Emitter<EventBlocState> emit,
   ) async {
-    final activeFilter = state is EventLoaded
-        ? (state as EventLoaded).activeFilter
-        : 'Semua';
+    final activeFilter =
+        state is EventLoaded ? (state as EventLoaded).activeFilter : 'Semua';
 
-    add(
-      LoadEvents(
-        reset: true,
-        searchQuery: event.query,
-        statusFilter: activeFilter,
-      ),
-    );
+    add(LoadEvents(
+      reset: true,
+      searchQuery: event.query,
+      statusFilter: activeFilter,
+    ));
   }
 
   Future<void> _onFilterEvents(
     FilterEvents event,
     Emitter<EventBlocState> emit,
   ) async {
-    final searchQuery = state is EventLoaded
-        ? (state as EventLoaded).searchQuery
-        : '';
+    final searchQuery =
+        state is EventLoaded ? (state as EventLoaded).searchQuery : '';
 
-    add(
-      LoadEvents(
-        reset: true,
-        searchQuery: searchQuery,
-        statusFilter: event.filter,
-      ),
-    );
+    add(LoadEvents(
+      reset: true,
+      searchQuery: searchQuery,
+      statusFilter: event.filter,
+    ));
   }
 
   Future<void> _onCreateEvent(
@@ -141,8 +127,8 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
       await createEventUseCase(event.event);
       emit(EventCreated());
     } catch (e) {
+      debugPrint(e.toString());
       emit(EventCreateError(_parseError(e)));
-      print(e);
     }
   }
 
@@ -152,8 +138,8 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
   ) async {
     final previousLoaded = state is EventLoaded ? state as EventLoaded : null;
     emit(EventRegistering());
+
     try {
-      // Guard: check if already registered before inserting
       final alreadyRegistered = await eventRepository.isUserRegistered(
         eventId: event.eventId,
         userId: event.userId,
@@ -167,14 +153,10 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
 
       await registerEventUseCase(eventId: event.eventId, userId: event.userId);
       emit(EventRegistered());
-      if (previousLoaded != null) {
-        emit(previousLoaded);
-      }
+      if (previousLoaded != null) emit(previousLoaded);
     } catch (e) {
       emit(EventRegisterError(_parseError(e)));
-      if (previousLoaded != null) {
-        emit(previousLoaded);
-      }
+      if (previousLoaded != null) emit(previousLoaded);
     }
   }
 
@@ -192,8 +174,11 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
   }
 }
 
+// ── Error Parser ───────────────────────────────────────────────────────────────
+
 String _parseError(Object error) {
   final msg = error.toString().toLowerCase();
+
   if (msg.contains('jwt') ||
       msg.contains('not authenticated') ||
       msg.contains('invalid token')) {
@@ -222,5 +207,6 @@ String _parseError(Object error) {
   if (msg.contains('500') || msg.contains('internal server')) {
     return 'Terjadi kesalahan pada server. Silakan coba lagi nanti.';
   }
+
   return 'Gagal mengunggah kegiatan. Silakan coba lagi.';
 }
