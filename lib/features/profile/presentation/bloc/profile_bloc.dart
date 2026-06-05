@@ -122,76 +122,66 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
   }
 
-  Future<void> _onApproveMember(
-    ProfileApproveMember event,
-    Emitter<ProfileState> emit,
-  ) async {
+  // ── Shared handler untuk approve & reject ────────────────────────────────
+  // Mengurangi duplikasi kode antara _onApproveMember dan _onRejectMember
+  // (sebelumnya logika yang sama diulang dua kali → WMC & RFC berkurang).
+  Future<void> _handleMemberStatusUpdate({
+    required String registrationId,
+    required String eventId,
+    required String status,
+    required String successMessage,
+    required Emitter<ProfileState> emit,
+  }) async {
     emit(ProfileLoading());
     final res = await _updateMemberStatus(
       UpdateMemberStatusParams(
-        registrationId: event.registrationId,
-        status: 'approved',
+        registrationId: registrationId,
+        status: status,
       ),
     );
     await res.fold(
       (failure) async => emit(ProfileFailure(failure.message)),
       (_) async {
-        // Emit success first, then fetch fresh members — all within the same
-        // handler so we never call add() while the emitter is still active.
+        // Emit success, lalu fetch ulang member — semua dalam satu handler
+        // agar tidak perlu memanggil add() saat emitter masih aktif.
         emit(ProfileMemberActionSuccess(
-          message: 'Anggota berhasil disetujui',
-          eventId: event.eventId,
+          message: successMessage,
+          eventId: eventId,
         ));
         final membersRes = await _getEventMembers(
-          GetEventMembersParams(eventId: event.eventId),
+          GetEventMembersParams(eventId: eventId),
         );
         membersRes.fold(
           (failure) => emit(ProfileFailure(failure.message)),
           (members) => emit(
-            ProfileEventMembersLoaded(
-              members: members,
-              eventId: event.eventId,
-            ),
+            ProfileEventMembersLoaded(members: members, eventId: eventId),
           ),
         );
       },
     );
   }
 
+  Future<void> _onApproveMember(
+    ProfileApproveMember event,
+    Emitter<ProfileState> emit,
+  ) => _handleMemberStatusUpdate(
+        registrationId: event.registrationId,
+        eventId: event.eventId,
+        status: 'approved',
+        successMessage: 'Anggota berhasil disetujui',
+        emit: emit,
+      );
+
   Future<void> _onRejectMember(
     ProfileRejectMember event,
     Emitter<ProfileState> emit,
-  ) async {
-    emit(ProfileLoading());
-    final res = await _updateMemberStatus(
-      UpdateMemberStatusParams(
+  ) => _handleMemberStatusUpdate(
         registrationId: event.registrationId,
+        eventId: event.eventId,
         status: 'rejected',
-      ),
-    );
-    await res.fold(
-      (failure) async => emit(ProfileFailure(failure.message)),
-      (_) async {
-        // Same pattern: emit action success then re-fetch inline.
-        emit(ProfileMemberActionSuccess(
-          message: 'Anggota berhasil ditolak',
-          eventId: event.eventId,
-        ));
-        final membersRes = await _getEventMembers(
-          GetEventMembersParams(eventId: event.eventId),
-        );
-        membersRes.fold(
-          (failure) => emit(ProfileFailure(failure.message)),
-          (members) => emit(
-            ProfileEventMembersLoaded(
-              members: members,
-              eventId: event.eventId,
-            ),
-          ),
-        );
-      },
-    );
-  }
+        successMessage: 'Anggota berhasil ditolak',
+        emit: emit,
+      );
 
   Future<void> _onSignOut(
     ProfileSignOut event,
