@@ -30,10 +30,9 @@ class MemberListTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Avatar
           CircleAvatar(
             radius: 20,
-            backgroundColor: Colors.teal.withValues(alpha: 0.2),
+            backgroundColor: Colors.teal.withOpacity(0.2),
             child: Text(
               member.username.isNotEmpty
                   ? member.username[0].toUpperCase()
@@ -45,8 +44,6 @@ class MemberListTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Name & email
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,8 +63,6 @@ class MemberListTile extends StatelessWidget {
               ],
             ),
           ),
-
-          // Status / actions
           if (isPending) ...[
             _IconActionButton(
               icon: Icons.check_circle_outline,
@@ -75,16 +70,62 @@ class MemberListTile extends StatelessWidget {
               tooltip: 'Setujui',
               onTap: onApprove,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 8),
             _IconActionButton(
               icon: Icons.cancel_outlined,
               color: Colors.red,
               tooltip: 'Tolak',
               onTap: onReject,
             ),
-          ] else
+          ] else ...[
             _StatusChip(status: member.status),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String status;
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    String label;
+    switch (status.trim().toLowerCase()) {
+      case 'approved':
+        color = Colors.green;
+        label = 'Disetujui';
+        break;
+      case 'rejected':
+        color = Colors.red;
+        label = 'Ditolak';
+        break;
+      case 'pending':
+        color = Colors.orange;
+        label = 'Menunggu';
+        break;
+      default:
+        color = Colors.grey;
+        label = status;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -113,47 +154,6 @@ class _IconActionButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Icon(icon, color: color, size: 26),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String status;
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color color;
-    String label;
-    switch (status) {
-      case 'approved':
-        color = Colors.green;
-        label = 'Disetujui';
-        break;
-      case 'rejected':
-        color = Colors.red;
-        label = 'Ditolak';
-        break;
-      default:
-        color = Colors.grey;
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          color: color,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

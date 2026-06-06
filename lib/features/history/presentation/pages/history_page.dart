@@ -138,7 +138,7 @@ class _HistoryPageState extends State<HistoryPage>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppPallete.blackColor.withValues(alpha: 0.06),
+                      color: AppPallete.blackColor.withOpacity(0.06),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -185,6 +185,11 @@ class _HistoryPageState extends State<HistoryPage>
                       ),
                     );
                   } else if (state is HistoryRegistrationsLoaded) {
+                    // Merge: add only items not already in cache (by id).
+                    final existingIds = _registrations.map((r) => r.id).toSet();
+                    final newItems = state.registrations
+                        .where((r) => !existingIds.contains(r.id))
+                        .toList();
                     setState(() {
                       _registrations
                         ..clear() // full refresh keeps list in sync with DB order
@@ -314,7 +319,10 @@ class _HistoryPageState extends State<HistoryPage>
       }
     }
 
-    // 2. Check EventBloc cache
+    // 2. Check in-memory posts cache for image/title metadata
+    final matchingPost = _posts.where((p) => p.eventId == eventId).toList();
+
+    // 3. Check EventBloc cache
     final currentState = context.read<EventBloc>().state;
     if (currentState is EventLoaded) {
       final match = currentState.events.where((e) => e.id == eventId).toList();
@@ -480,3 +488,28 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+class _ErrorState extends StatelessWidget {
+  final String message;
+  const _ErrorState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: AppPallete.errorColor),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppPallete.errorColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

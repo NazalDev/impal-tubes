@@ -7,12 +7,10 @@ import 'package:volync/features/event/domain/repository/event_repository.dart';
 import 'package:volync/features/event/domain/repository/post_disc_repository.dart';
 import 'package:volync/features/event/domain/usecase/get_calendar_events_usecase.dart';
 
-// ── EVENT ──────────────────────────────────────────────────────────────────────
-
 class EventRepositoryImpl implements EventRepository {
-  EventRepositoryImpl(this.remoteDataSource);
-
   final EventRemoteDataSource remoteDataSource;
+
+  EventRepositoryImpl(this.remoteDataSource);
 
   @override
   Future<List<EventEntity>> getEvents({
@@ -20,93 +18,104 @@ class EventRepositoryImpl implements EventRepository {
     int offset = 0,
     String? searchQuery,
     String? statusFilter,
-  }) => remoteDataSource.getEvents(
-        limit: limit,
-        offset: offset,
-        searchQuery: searchQuery,
-        statusFilter: statusFilter,
-      );
+  }) {
+    return remoteDataSource.getEvents(
+      limit: limit,
+      offset: offset,
+      searchQuery: searchQuery,
+      statusFilter: statusFilter,
+    );
+  }
 
   @override
-  Future<void> createEvent(EventEntity event) =>
-      remoteDataSource.createEvent(_toModel(event));
+  Future<void> createEvent(EventEntity event) {
+    final model = EventModel(
+      userId: event.userId,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      status: event.status,
+      startAt: event.startAt,
+      endAt: event.endAt,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+      imageUrl: event.imageUrl,
+      id: 0,
+      genre: event.genre,
+      quota: event.quota,
+    );
+    return remoteDataSource.createEvent(model);
+  }
 
   @override
-  Future<void> registerEvent(int eventId, String userId) =>
-      remoteDataSource.registerEvent(eventId, userId);
+  Future<void> registerEvent(int eventId, String userId) {
+    return remoteDataSource.registerEvent(eventId, userId);
+  }
 
   @override
   Future<List<EventWithRegistration>> getCalendarEvents({
     required String userId,
-  }) => remoteDataSource.getCalendarEvents(userId: userId);
+  }) {
+    return remoteDataSource.getCalendarEvents(userId: userId);
+  }
 
   @override
   Future<bool> isUserRegistered({
     required int eventId,
     required String userId,
-  }) => remoteDataSource.isUserRegistered(eventId: eventId, userId: userId);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  EventModel _toModel(EventEntity e) => EventModel(
-        id: 0,
-        userId: e.userId,
-        title: e.title,
-        description: e.description,
-        location: e.location,
-        status: e.status,
-        genre: e.genre,
-        quota: e.quota,
-        imageUrl: e.imageUrl,
-        startAt: e.startAt,
-        endAt: e.endAt,
-        createdAt: e.createdAt,
-        updatedAt: e.updatedAt,
-      );
+  }) {
+    return remoteDataSource.isUserRegistered(eventId: eventId, userId: userId);
+  }
 }
 
-// ── POST DISC ──────────────────────────────────────────────────────────────────
-
 class PostDiscRepositoryImpl implements PostDiscRepository {
-  PostDiscRepositoryImpl(this.remoteDataSource);
-
   final EventRemoteDataSource remoteDataSource;
+
+  PostDiscRepositoryImpl(this.remoteDataSource);
 
   @override
   Future<List<PostDiscEntity>> getComments({
     required int eventId,
     int limit = 5,
     int offset = 0,
-  }) => remoteDataSource.getComments(
-        eventId: eventId,
-        limit: limit,
-        offset: offset,
-      );
+  }) {
+    return remoteDataSource.getComments(
+      eventId: eventId,
+      limit: limit,
+      offset: offset,
+    );
+  }
 
   @override
   Future<List<ReplyPostDiscEntity>> getReplies({
     required String parentCommentId,
-  }) => remoteDataSource.getReplies(parentCommentId: parentCommentId);
+  }) {
+    return remoteDataSource.getReplies(parentCommentId: parentCommentId);
+  }
 
   @override
   Future<PostDiscEntity> postComment({
     required int eventId,
     required String userId,
     required String body,
-  }) => remoteDataSource.postComment(
-        eventId: eventId,
-        userId: userId,
-        body: body,
-      );
+  }) {
+    return remoteDataSource.postComment(
+      eventId: eventId,
+      userId: userId,
+      body: body,
+    );
+  }
 
   @override
   Future<ReplyPostDiscEntity> postReply({
     required String postId,
     required String userId,
     required String body,
-  }) => remoteDataSource.postReply(
-        postId: postId,
-        userId: userId,
-        body: body,
-      );
+  }) {
+    return remoteDataSource.postReply(
+      postId: postId,
+      userId: userId,
+      body: body,
+    );
+  }
 }

@@ -189,19 +189,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
       if (updates.isNotEmpty) {
         await _supabaseClient.from('user').update(updates).eq('id', userId);
-
-        final Map<String, dynamic> metaUpdates = {};
-        if (username != null && username.isNotEmpty) {
-          metaUpdates['username'] = username;
-        }
-        if (avatarUrl != null && avatarUrl.isNotEmpty) {
-          metaUpdates['avatar_url'] = avatarUrl;
-        }
-        if (metaUpdates.isNotEmpty) {
-          await _supabaseClient.auth.updateUser(
-            UserAttributes(data: metaUpdates),
-          );
-        }
+        await _supabaseClient.auth.updateUser(UserAttributes(data: updates));
       }
     } catch (e) {
       if (e is ServerException) rethrow;

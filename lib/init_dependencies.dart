@@ -23,6 +23,7 @@ import 'package:volync/features/event/domain/usecase/regist_event_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/history/history_injector.dart';
 import 'package:volync/features/profile/profile_injector.dart';
+import 'package:volync/features/report/report_injector.dart';
 
 final serviceLocator = GetIt.instance;
 
@@ -37,6 +38,7 @@ Future<void> initDependencies() async {
   _initEvent();
   initProfile();
   initHistory();
+  initReport();
 
   serviceLocator.registerLazySingleton(() => AppUserCubit());
 }

@@ -7,6 +7,8 @@ import 'package:volync/features/auth/presentation/pages/edit_profile_page.dart';
 import 'package:volync/features/auth/presentation/pages/login1.dart';
 import 'package:volync/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:volync/features/profile/presentation/pages/kelola_event_page.dart';
+import 'package:volync/features/report/presentation/bloc/report_bloc.dart';
+import 'package:volync/features/report/presentation/pages/admin_reports_page.dart';
 import 'package:volync/init_dependencies.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -44,6 +46,7 @@ class ProfilePage extends StatelessWidget {
                 }
 
                 final user = userState.user;
+                print(user.role);
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +144,8 @@ class ProfilePage extends StatelessWidget {
                             _MenuTile(
                               icon: Icons.person_outline_rounded,
                               label: 'Edit Profil',
-                              subtitle: 'Ubah username, foto profil, atau password',
+                              subtitle:
+                                  'Ubah username, foto profil, atau password',
                               color: Colors.indigo,
                               onTap: () => Navigator.push(
                                 context,
@@ -169,6 +173,24 @@ class ProfilePage extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            if (user.role.trim().toLowerCase() == 'admin') ...[
+                              const SizedBox(height: 10),
+                              _MenuTile(
+                                icon: Icons.admin_panel_settings_outlined,
+                                label: 'Kelola Laporan',
+                                subtitle: 'Tinjau laporan dari pengguna',
+                                color: Colors.deepOrange,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: serviceLocator<ReportBloc>(),
+                                      child: const AdminReportsPage(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -325,7 +347,10 @@ class _MenuTile extends StatelessWidget {
                     ),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
                     ),
                   ],
                 ),

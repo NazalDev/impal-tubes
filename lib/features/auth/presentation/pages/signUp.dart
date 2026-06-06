@@ -97,6 +97,7 @@ class _SignUpState extends State<SignUp> {
                       icon: Icon(Icons.person),
                     ),
                     const SizedBox(height: 16),
+
                     AuthField(
                       controller: emailControl,
                       hintText: 'username@gmail.com',
@@ -110,6 +111,7 @@ class _SignUpState extends State<SignUp> {
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 16),
                     AuthField(
                       controller: passControl,

@@ -7,6 +7,9 @@ import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart'
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/event/presentation/widgets/event_detail_sheet.dart';
 import 'package:volync/features/event/presentation/widgets/post_disc_section.dart';
+import 'package:volync/features/report/presentation/bloc/report_bloc.dart';
+import 'package:volync/features/report/presentation/widgets/report_dialog.dart';
+import 'package:volync/init_dependencies.dart';
 
 class EventCard extends StatelessWidget {
   final EventEntity event;
@@ -142,41 +145,69 @@ class EventCard extends StatelessWidget {
 
                   const SizedBox(width: 12),
 
-                  // Right: image OR daftar button
-                  SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: event.imageUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              event.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                print('CARD IMAGE ERROR: $error');
-                                return _DaftarButton(
-                                  onTap: () => _openDetail(context),
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.teal,
-                                        ),
-                                      ),
+                  // Right: 3-dots menu + image OR daftar button
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // 3-dots menu
+                      BlocProvider.value(
+                        value: serviceLocator<ReportBloc>(),
+                        child: Builder(
+                          builder: (ctx) => GestureDetector(
+                            onTapDown: (details) => _showEventCardMenu(
+                              ctx,
+                              details.globalPosition,
+                              event,
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.only(bottom: 4),
+                              child: Icon(
+                                Icons.more_vert,
+                                size: 18,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 100,
+                        height: 88,
+                        child: event.imageUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  event.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    print('CARD IMAGE ERROR: $error');
+                                    return _DaftarButton(
+                                      onTap: () => _openDetail(context),
                                     );
                                   },
-                            ),
-                          )
-                        : _DaftarButton(onTap: () => _openDetail(context)),
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[100],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.teal,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                ),
+                              )
+                            : _DaftarButton(onTap: () => _openDetail(context)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -217,6 +248,41 @@ class EventCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showEventCardMenu(
+    BuildContext context,
+    Offset position,
+    EventEntity event,
+  ) async {
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: const [
+        PopupMenuItem(
+          value: 'report',
+          child: Row(
+            children: [
+              Icon(Icons.flag_outlined, color: Colors.red, size: 18),
+              SizedBox(width: 8),
+              Text('Laporkan Event', style: TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (result == 'report' && context.mounted) {
+      showReportDialog(
+        context,
+        reportedEventId: event.id.toString(),
+        targetName: event.title,
+      );
+    }
   }
 }
 

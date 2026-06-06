@@ -32,8 +32,8 @@ class _KelolaEventPageState extends State<KelolaEventPage> {
 
   void _loadEvents() {
     context.read<ProfileBloc>().add(
-          ProfileLoadUserEvents(userId: widget.userId),
-        );
+      ProfileLoadUserEvents(userId: widget.userId),
+    );
   }
 
   @override
@@ -118,15 +118,21 @@ class _KelolaEventPageState extends State<KelolaEventPage> {
                     event: event,
                     onEdit: () => _showEditPage(context, event),
                     onDelete: () => _confirmDelete(context, event.id),
-                    onReport: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider.value(
-                          value: context.read<ProfileBloc>(),
-                          child: EventReportPage(event: event),
+                    onReport: () {
+                      // Load members then open report page
+                      context.read<ProfileBloc>().add(
+                            ProfileLoadEventMembers(eventId: event.id),
+                          );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<ProfileBloc>(),
+                            child: EventReportPage(event: event),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                     onManageMembers: () async {
                       await Navigator.push(
                         context,
@@ -181,8 +187,8 @@ class _KelolaEventPageState extends State<KelolaEventPage> {
             onPressed: () {
               Navigator.pop(ctx);
               context.read<ProfileBloc>().add(
-                    ProfileDeleteEvent(eventId: eventId),
-                  );
+                ProfileDeleteEvent(eventId: eventId),
+              );
             },
             child: const Text('Hapus', style: TextStyle(color: AppPallete.whiteColor)),
           ),
@@ -212,8 +218,8 @@ class _KelolaEventPageState extends State<KelolaEventPage> {
             onPressed: () {
               Navigator.pop(ctx);
               context.read<ProfileBloc>().add(
-                    ProfileCancelEvent(eventId: eventId),
-                  );
+                ProfileCancelEvent(eventId: eventId),
+              );
             },
             child: const Text(
               'Batalkan Event',
@@ -261,6 +267,7 @@ class _EditEventPageState extends State<_EditEventPage> {
   String? _selectedGenre;
   bool _hasAttemptedSubmit = false;
 
+  // Image upload
   File? _pickedImage;
   String? _imageError;
   static const int _maxImageBytes = 2 * 1024 * 1024; // 2 MB
@@ -268,6 +275,7 @@ class _EditEventPageState extends State<_EditEventPage> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill: description is stored as "orgName\ndescription"
     final parts = widget.event.description.split('\n');
     final orgName = parts.isNotEmpty ? parts.first : '';
     final desc = parts.length > 1 ? parts.sublist(1).join('\n') : '';
@@ -294,6 +302,7 @@ class _EditEventPageState extends State<_EditEventPage> {
     super.dispose();
   }
 
+  // ── Image picker ──────────────────────────────────────────────────────────
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -320,6 +329,7 @@ class _EditEventPageState extends State<_EditEventPage> {
         _imageError = null;
       });
 
+  // ── Submit ────────────────────────────────────────────────────────────────
   void _submit() {
     setState(() => _hasAttemptedSubmit = true);
 
@@ -343,14 +353,15 @@ class _EditEventPageState extends State<_EditEventPage> {
     if (quota != null) data['quota'] = quota;
 
     context.read<ProfileBloc>().add(
-          ProfileUpdateEvent(
-            eventId: widget.event.id,
-            data: data,
-            imageFile: _pickedImage,
-          ),
-        );
+      ProfileUpdateEvent(
+        eventId: widget.event.id,
+        data: data,
+        imageFile: _pickedImage,
+      ),
+    );
   }
 
+  // ── Feedback helpers ──────────────────────────────────────────────────────
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -372,6 +383,7 @@ class _EditEventPageState extends State<_EditEventPage> {
       );
   }
 
+  // ── Decoration helpers ────────────────────────────────────────────────────
   InputDecoration _fieldDecoration(String hint, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
@@ -427,6 +439,7 @@ class _EditEventPageState extends State<_EditEventPage> {
   AutovalidateMode get _autovalidate =>
       _hasAttemptedSubmit ? AutovalidateMode.always : AutovalidateMode.disabled;
 
+  // ── Genre dropdown ────────────────────────────────────────────────────────
   Widget _buildGenreDropdown() {
     final hasError = _hasAttemptedSubmit && _selectedGenre == null;
     return Column(
@@ -476,6 +489,7 @@ class _EditEventPageState extends State<_EditEventPage> {
     );
   }
 
+  // ── Image picker widget ───────────────────────────────────────────────────
   Widget _buildImagePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +516,7 @@ class _EditEventPageState extends State<_EditEventPage> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppPallete.blackColor.withValues(alpha: 0.6),
+                      color: AppPallete.blackColor.withOpacity(0.6),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, color: AppPallete.whiteColor, size: 16),
@@ -568,6 +582,7 @@ class _EditEventPageState extends State<_EditEventPage> {
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProfileBloc, ProfileState>(
@@ -579,8 +594,7 @@ class _EditEventPageState extends State<_EditEventPage> {
         }
       },
       child: BlocBuilder<ProfileBloc, ProfileState>(
-        buildWhen: (_, s) =>
-            s is ProfileLoading || s is ProfileActionSuccess || s is ProfileFailure,
+        buildWhen: (_, s) => s is ProfileLoading || s is ProfileActionSuccess || s is ProfileFailure,
         builder: (context, state) {
           final isLoading = state is ProfileLoading;
 
@@ -694,6 +708,7 @@ class _EditEventPageState extends State<_EditEventPage> {
                     _buildImagePicker(),
                     const SizedBox(height: 28),
 
+                    // ── Submit button ───────────────────────────────────────
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -703,7 +718,7 @@ class _EditEventPageState extends State<_EditEventPage> {
                           backgroundColor: AppPallete.focusedColor,
                           foregroundColor: AppPallete.whiteColor,
                           disabledBackgroundColor:
-                              AppPallete.buttonColor.withValues(alpha: 0.5),
+                              AppPallete.buttonColor.withOpacity(0.5),
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),

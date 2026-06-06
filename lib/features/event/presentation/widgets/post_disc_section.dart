@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:volync/features/event/domain/entity/post_disc.dart';
 import 'package:volync/features/event/domain/entity/reply_post_disc.dart';
 import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
+import 'package:volync/features/report/presentation/bloc/report_bloc.dart';
+import 'package:volync/features/report/presentation/widgets/report_dialog.dart';
+import 'package:volync/init_dependencies.dart';
 
 /// Preview strip shown at the bottom of each event card.
 /// Shows the most recent postDisc and a tap-to-expand action.
@@ -548,6 +552,40 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                   ],
                 ),
               ),
+              // 3-dots report menu for comment author
+              BlocProvider.value(
+                value: serviceLocator<ReportBloc>(),
+                child: Builder(
+                  builder: (ctx) => PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert,
+                        size: 16, color: Colors.black38),
+                    padding: EdgeInsets.zero,
+                    onSelected: (value) {
+                      if (value == 'report') {
+                        showReportDialog(
+                          ctx,
+                          reportedUserId: widget.postDisc.userId,
+                          targetName: widget.postDisc.userName,
+                        );
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'report',
+                        child: Row(
+                          children: [
+                            Icon(Icons.flag_outlined,
+                                color: Colors.red, size: 16),
+                            SizedBox(width: 8),
+                            Text('Laporkan Pengguna',
+                                style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -718,6 +756,42 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                            // 3-dots report for reply author
+                            BlocProvider.value(
+                              value: serviceLocator<ReportBloc>(),
+                              child: Builder(
+                                builder: (ctx) => PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert,
+                                      size: 14, color: Colors.black26),
+                                  padding: EdgeInsets.zero,
+                                  onSelected: (value) {
+                                    if (value == 'report') {
+                                      showReportDialog(
+                                        ctx,
+                                        reportedUserId: reply.userId,
+                                        targetName:
+                                            reply.userName ?? 'Pengguna',
+                                      );
+                                    }
+                                  },
+                                  itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                      value: 'report',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.flag_outlined,
+                                              color: Colors.red, size: 16),
+                                          SizedBox(width: 8),
+                                          Text('Laporkan Pengguna',
+                                              style:
+                                                  TextStyle(fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

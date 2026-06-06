@@ -6,6 +6,9 @@ import 'package:volync/features/event/domain/entity/event.dart';
 import 'package:volync/features/event/domain/usecase/get_post_disc_usecase.dart';
 import 'package:volync/features/event/presentation/bloc/event_bloc.dart';
 import 'package:volync/features/event/presentation/widgets/post_disc_section.dart';
+import 'package:volync/features/report/presentation/bloc/report_bloc.dart';
+import 'package:volync/features/report/presentation/widgets/report_dialog.dart';
+import 'package:volync/init_dependencies.dart';
 
 class EventDetailSheet extends StatelessWidget {
   final EventEntity event;
@@ -39,7 +42,50 @@ class EventDetailSheet extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const _DragHandle(),
+              // Header row: drag handle + 3-dots menu
+              Padding(
+                padding: const EdgeInsets.only(top: 12, right: 8),
+                child: Row(
+                  children: [
+                    const Expanded(child: _DragHandle()),
+                    BlocProvider.value(
+                      value: serviceLocator<ReportBloc>(),
+                      child: Builder(
+                        builder: (ctx) => PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.black45,
+                            size: 20,
+                          ),
+                          onSelected: (value) {
+                            if (value == 'report') {
+                              showReportDialog(
+                                ctx,
+                                reportedEventId: event.id.toString(),
+                                targetName: event.title,
+                              );
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: 'report',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.flag_outlined,
+                                      color: Colors.red, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Laporkan Event',
+                                      style: TextStyle(fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               Expanded(
                 child: SingleChildScrollView(
