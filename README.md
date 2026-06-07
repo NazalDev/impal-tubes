@@ -40,5 +40,5 @@ Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
 
 ## 📂 Cara Instalasi
 
-1. `download app-release.apk pada `
+1. `download app-release.apk pada src/app-release.apk`
 2. `install apk pada device mobile`
