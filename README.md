@@ -20,6 +20,17 @@ _Detail proses bisnis dan integrasi database._
 
 ---
 
+### ERD
+![ERD](src/image/others/ERD.png)
+
+---
+
+### Sequence Diagram
+
+Link G Drive : [Sequence Diagram Volync](https://drive.google.com/drive/folders/10y7IAOyiUny2VSsOvGL3a-Yw9GhQdU_t?usp=sharing)
+
+---
+
 ## 🎨 Mockup Antarmuka
 
 Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
