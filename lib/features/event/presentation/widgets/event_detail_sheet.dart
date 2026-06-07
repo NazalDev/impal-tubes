@@ -71,11 +71,16 @@ class EventDetailSheet extends StatelessWidget {
                               value: 'report',
                               child: Row(
                                 children: [
-                                  Icon(Icons.flag_outlined,
-                                      color: Colors.red, size: 18),
+                                  Icon(
+                                    Icons.flag_outlined,
+                                    color: Colors.red,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('Laporkan Event',
-                                      style: TextStyle(fontSize: 13)),
+                                  Text(
+                                    'Laporkan Event',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
                                 ],
                               ),
                             ),
@@ -103,7 +108,6 @@ class EventDetailSheet extends StatelessWidget {
                             height: 200,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              print('IMAGE ERROR: $error');
                               return Container(
                                 width: double.infinity,
                                 height: 200,
@@ -332,13 +336,18 @@ class _DaftarBottomBar extends StatelessWidget {
               current is EventInitial,
           builder: (context, state) {
             final isLoading = state is EventRegistering;
+            final isUnavailable = [
+              'cancelled',
+              'finished',
+            ].contains(event.status.toLowerCase());
+            final isDisabled = isLoading || isUnavailable;
             final user = Supabase.instance.client.auth.currentUser;
 
             return SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: isLoading
+                onPressed: isDisabled
                     ? null
                     : () {
                         if (user == null) {
@@ -357,7 +366,10 @@ class _DaftarBottomBar extends StatelessWidget {
                         );
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: isUnavailable ? Colors.grey : Colors.teal,
+                  disabledBackgroundColor: Colors.grey,
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -371,9 +383,9 @@ class _DaftarBottomBar extends StatelessWidget {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Daftar',
-                        style: TextStyle(
+                    : Text(
+                        isUnavailable ? 'Tidak dapat mendaftar' : 'Daftar',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

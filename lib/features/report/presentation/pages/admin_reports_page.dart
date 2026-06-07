@@ -15,7 +15,6 @@ class AdminReportsPage extends StatefulWidget {
 class _AdminReportsPageState extends State<AdminReportsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<ReportEntity> _reports = [];
 
   @override
   void initState() {
@@ -59,9 +58,6 @@ class _AdminReportsPageState extends State<AdminReportsPage>
       ),
       body: BlocConsumer<ReportBloc, ReportState>(
         listener: (context, state) {
-          if (state is ReportLoaded) {
-            setState(() => _reports = state.reports);
-          }
           if (state is ReportMarkSeenSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -81,43 +77,34 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           }
         },
         builder: (context, state) {
-          if (state is ReportLoading && _reports.isEmpty) {
+          // Read reports directly from state — no _reports cache needed
+          if (state is ReportLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final eventReports =
-              _reports.where((r) => r.isEventReport).toList();
-          final userReports = _reports.where((r) => r.isUserReport).toList();
+          final reports =
+              state is ReportLoaded ? state.reports : <ReportEntity>[];
 
-          return Stack(
+          final eventReports =
+              reports.where((r) => r.isEventReport).toList();
+          final userReports =
+              reports.where((r) => r.isUserReport).toList();
+
+          return TabBarView(
+            controller: _tabController,
             children: [
-              TabBarView(
-                controller: _tabController,
-                children: [
-                  _ReportList(
-                    reports: eventReports,
-                    onMarkSeen: (id) => context
-                        .read<ReportBloc>()
-                        .add(ReportMarkSeen(reportId: id)),
-                  ),
-                  _ReportList(
-                    reports: userReports,
-                    onMarkSeen: (id) => context
-                        .read<ReportBloc>()
-                        .add(ReportMarkSeen(reportId: id)),
-                  ),
-                ],
+              _ReportList(
+                reports: eventReports,
+                onMarkSeen: (id) => context
+                    .read<ReportBloc>()
+                    .add(ReportMarkSeen(reportId: id)),
               ),
-              if (state is ReportLoading && _reports.isNotEmpty)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: LinearProgressIndicator(
-                    backgroundColor: Colors.transparent,
-                    color: AppPallete.buttonColor,
-                  ),
-                ),
+              _ReportList(
+                reports: userReports,
+                onMarkSeen: (id) => context
+                    .read<ReportBloc>()
+                    .add(ReportMarkSeen(reportId: id)),
+              ),
             ],
           );
         },
@@ -128,7 +115,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
 
 class _ReportList extends StatelessWidget {
   final List<ReportEntity> reports;
-  final void Function(String reportId) onMarkSeen;
+  final void Function(String) onMarkSeen;
 
   const _ReportList({required this.reports, required this.onMarkSeen});
 
@@ -150,16 +137,13 @@ class _ReportList extends StatelessWidget {
         ),
       );
     }
-
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: reports.length,
-      itemBuilder: (context, index) {
-        return _ReportCard(
-          report: reports[index],
-          onMarkSeen: () => onMarkSeen(reports[index].id),
-        );
-      },
+      itemBuilder: (context, index) => _ReportCard(
+        report: reports[index],
+        onMarkSeen: () => onMarkSeen(reports[index].id),
+      ),
     );
   }
 }
@@ -186,7 +170,8 @@ class _ReportCard extends StatelessWidget {
         ],
         border: isSeen
             ? null
-            : Border.all(color: Colors.orange.withOpacity(0.5), width: 1.5),
+            : Border.all(
+                color: Colors.orange.withOpacity(0.5), width: 1.5),
       ),
       child: Column(
         children: [
@@ -229,8 +214,8 @@ class _ReportCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       report.reason,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.red),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.red),
                     ),
                   ],
                 ),
@@ -266,8 +251,7 @@ class _ReportCard extends StatelessWidget {
           ),
           if (report.description != null && report.description!.isNotEmpty)
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),

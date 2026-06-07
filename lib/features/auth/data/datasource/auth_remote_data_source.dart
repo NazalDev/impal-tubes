@@ -134,7 +134,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return publicUrl;
     } catch (e) {
       if (e is ServerException) rethrow;
-      print(e.toString());
       throw ServerException('Gagal mengunggah foto: ${e.toString()}');
     }
   }

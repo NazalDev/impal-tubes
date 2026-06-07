@@ -205,7 +205,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         .eq('event_id', eventId)
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
-    debugPrint('getComments raw response: $response');
     return response.map((row) => PostDiscModel.fromMap(row)).toList();
   }
 
@@ -246,8 +245,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         .select('id')
         .single();
 
-    debugPrint('postComment inserted id: ${inserted['id']}');
-
     final response = await supabase
         .from('postdisc')
         .select('''
@@ -261,7 +258,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         .eq('id', inserted['id'])
         .single();
 
-    debugPrint('postComment fetched: $response');
     return PostDiscModel.fromMap(response);
   }
 

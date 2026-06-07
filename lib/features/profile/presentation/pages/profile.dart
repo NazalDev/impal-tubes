@@ -46,7 +46,6 @@ class ProfilePage extends StatelessWidget {
                 }
 
                 final user = userState.user;
-                print(user.role);
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

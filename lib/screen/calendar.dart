@@ -17,10 +17,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-  DateTime _focusedMonth = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-  );
+  DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime? _selectedDay;
 
   @override
@@ -43,9 +40,7 @@ class _CalendarPageState extends State<CalendarPage> {
       body: SafeArea(
         child: BlocBuilder<EventBloc, EventBlocState>(
           buildWhen: (_, s) =>
-              s is CalendarLoading ||
-              s is CalendarLoaded ||
-              s is CalendarError,
+              s is CalendarLoading || s is CalendarLoaded || s is CalendarError,
           builder: (context, state) {
             if (state is CalendarLoading) {
               return const Center(
@@ -58,7 +53,11 @@ class _CalendarPageState extends State<CalendarPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
                     const SizedBox(height: 12),
                     Text(state.message, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
@@ -71,8 +70,9 @@ class _CalendarPageState extends State<CalendarPage> {
               );
             }
 
-            final events =
-                state is CalendarLoaded ? state.events : <EventWithRegistration>[];
+            final events = state is CalendarLoaded
+                ? state.events
+                : <EventWithRegistration>[];
 
             return _CalendarBody(
               events: events,
@@ -120,8 +120,7 @@ class _CalendarBody extends StatelessWidget {
     return events.where((e) {
       final d = e.event.startAt;
       return d.year == focusedMonth.year && d.month == focusedMonth.month;
-    }).toList()
-      ..sort((a, b) => a.event.startAt.compareTo(b.event.startAt));
+    }).toList()..sort((a, b) => a.event.startAt.compareTo(b.event.startAt));
   }
 
   @override
@@ -145,12 +144,11 @@ class _CalendarBody extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.refresh, color: Colors.teal),
                 onPressed: () {
-                  final userId =
-                      Supabase.instance.client.auth.currentUser?.id;
+                  final userId = Supabase.instance.client.auth.currentUser?.id;
                   if (userId != null) {
-                    context
-                        .read<EventBloc>()
-                        .add(LoadCalendarEvents(userId: userId));
+                    context.read<EventBloc>().add(
+                      LoadCalendarEvents(userId: userId),
+                    );
                   }
                 },
               ),
@@ -189,9 +187,7 @@ class _CalendarBody extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   itemCount: _listedEvents.length,
                   itemBuilder: (context, i) {
-                    return _CalendarEventCard(
-                      eventWithReg: _listedEvents[i],
-                    );
+                    return _CalendarEventCard(eventWithReg: _listedEvents[i]);
                   },
                 ),
         ),
@@ -219,14 +215,18 @@ class _MonthCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daysInMonth =
-        DateUtils.getDaysInMonth(focusedMonth.year, focusedMonth.month);
-    final firstWeekday = DateTime(focusedMonth.year, focusedMonth.month, 1)
-        .weekday; // 1=Mon … 7=Sun
+    final daysInMonth = DateUtils.getDaysInMonth(
+      focusedMonth.year,
+      focusedMonth.month,
+    );
+    final firstWeekday = DateTime(
+      focusedMonth.year,
+      focusedMonth.month,
+      1,
+    ).weekday; // 1=Mon … 7=Sun
     final leadingBlanks = firstWeekday % 7; // Sun=0, Mon=1, …
 
-    final monthLabel =
-        DateFormat('MMMM yyyy', 'id_ID').format(focusedMonth);
+    final monthLabel = DateFormat('MMMM yyyy', 'id_ID').format(focusedMonth);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -234,11 +234,7 @@ class _MonthCalendar extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
       child: Padding(
@@ -307,10 +303,14 @@ class _MonthCalendar extends StatelessWidget {
                 if (index < leadingBlanks) return const SizedBox.shrink();
 
                 final day = index - leadingBlanks + 1;
-                final date =
-                    DateTime(focusedMonth.year, focusedMonth.month, day);
+                final date = DateTime(
+                  focusedMonth.year,
+                  focusedMonth.month,
+                  day,
+                );
                 final dayEvents = eventsForDay(date);
-                final isSelected = selectedDay != null &&
+                final isSelected =
+                    selectedDay != null &&
                     DateUtils.isSameDay(date, selectedDay);
                 final isToday = DateUtils.isSameDay(date, DateTime.now());
 
@@ -388,8 +388,8 @@ class _DayCell extends StatelessWidget {
                 color: isSelected
                     ? Colors.white
                     : isToday
-                        ? Colors.teal
-                        : Colors.black87,
+                    ? Colors.teal
+                    : Colors.black87,
               ),
             ),
             if (dominantColor != null)
@@ -465,7 +465,10 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Colors.black54),
+        ),
       ],
     );
   }
@@ -516,7 +519,12 @@ class _CalendarEventCard extends StatelessWidget {
     final dateFormatter = DateFormat('d MMM yyyy', 'id_ID');
 
     return GestureDetector(
-      onTap: () => _openDetail(context),
+      onTap: () {
+        if (eventWithReg.event.status != 'finished' ||
+            eventWithReg.dotColor != CalendarDotColor.grey) {
+          _openDetail(context);
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
@@ -529,9 +537,7 @@ class _CalendarEventCard extends StatelessWidget {
               offset: Offset(0, 3),
             ),
           ],
-          border: Border(
-            left: BorderSide(color: _accentColor, width: 4),
-          ),
+          border: Border(left: BorderSide(color: _accentColor, width: 4)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -597,10 +603,7 @@ class _CalendarEventCard extends StatelessWidget {
 
               // Status chip
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: _accentColor.withAlpha(25),
                   borderRadius: BorderRadius.circular(20),

@@ -180,7 +180,6 @@ class EventCard extends StatelessWidget {
                                   event.imageUrl!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
-                                    print('CARD IMAGE ERROR: $error');
                                     return _DaftarButton(
                                       onTap: () => _openDetail(context),
                                     );
@@ -192,8 +191,9 @@ class EventCard extends StatelessWidget {
                                         return Container(
                                           decoration: BoxDecoration(
                                             color: Colors.grey[100],
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           child: const Center(
                                             child: CircularProgressIndicator(

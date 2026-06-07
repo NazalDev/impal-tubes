@@ -14,8 +14,12 @@ class UserModel extends User {
     // When coming from Supabase auth (signIn/signUp), extra fields are nested
     // under 'user_metadata'. When coming from the DB table they are flat.
     final meta = (map['user_metadata'] as Map<String, dynamic>?) ?? {};
-    print(meta);
-    final roleValue = (meta['role'] ?? 'Pengguna').toString().trim();
+
+    // role: prefer flat DB value first, then metadata, then default
+    final roleValue = (map['role'] ?? meta['role'] ?? 'Pengguna')
+        .toString()
+        .trim();
+
     return UserModel(
       username: (map['username'] ?? meta['username'] ?? '') as String,
       email: (map['email'] ?? meta['email'] ?? '') as String,

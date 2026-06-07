@@ -55,7 +55,6 @@ class _PostDiscPreviewState extends State<PostDiscPreview> {
         });
       }
     } catch (e, st) {
-      debugPrint('PostDiscPreview._fetchLatest error: $e\n$st');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -199,7 +198,6 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
         _loading = false;
       });
     } catch (e, st) {
-      debugPrint('_PostDiscSheet._loadMore error: $e\n$st');
       setState(() => _loading = false);
     }
   }
@@ -221,15 +219,12 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
 
     setState(() => _posting = true);
     try {
-      debugPrint(
-        'postComment: calling usecase eventId=${widget.eventId} userId=${user.id}',
-      );
       final newComment = await widget.postCommentUseCase(
         eventId: widget.eventId,
         userId: user.id,
         body: body,
       );
-      debugPrint('postComment: success id=${newComment.id}');
+
       _commentController.clear();
       setState(() {
         _postDiscs.insert(0, newComment);
@@ -237,8 +232,7 @@ class _PostDiscSheetState extends State<_PostDiscSheet> {
         _posting = false;
       });
       widget.onNewComment?.call(newComment);
-    } catch (e, st) {
-      debugPrint('postComment error: $e\n$st');
+    } catch (e) {
       setState(() => _posting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -557,8 +551,11 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                 value: serviceLocator<ReportBloc>(),
                 child: Builder(
                   builder: (ctx) => PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert,
-                        size: 16, color: Colors.black38),
+                    icon: const Icon(
+                      Icons.more_vert,
+                      size: 16,
+                      color: Colors.black38,
+                    ),
                     padding: EdgeInsets.zero,
                     onSelected: (value) {
                       if (value == 'report') {
@@ -574,11 +571,16 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                         value: 'report',
                         child: Row(
                           children: [
-                            Icon(Icons.flag_outlined,
-                                color: Colors.red, size: 16),
+                            Icon(
+                              Icons.flag_outlined,
+                              color: Colors.red,
+                              size: 16,
+                            ),
                             SizedBox(width: 8),
-                            Text('Laporkan Pengguna',
-                                style: TextStyle(fontSize: 13)),
+                            Text(
+                              'Laporkan Pengguna',
+                              style: TextStyle(fontSize: 13),
+                            ),
                           ],
                         ),
                       ),
@@ -763,8 +765,11 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                               value: serviceLocator<ReportBloc>(),
                               child: Builder(
                                 builder: (ctx) => PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert,
-                                      size: 14, color: Colors.black26),
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    size: 14,
+                                    color: Colors.black26,
+                                  ),
                                   padding: EdgeInsets.zero,
                                   onSelected: (value) {
                                     if (value == 'report') {
@@ -781,12 +786,16 @@ class _PostDiscTileState extends State<_PostDiscTile> {
                                       value: 'report',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.flag_outlined,
-                                              color: Colors.red, size: 16),
+                                          Icon(
+                                            Icons.flag_outlined,
+                                            color: Colors.red,
+                                            size: 16,
+                                          ),
                                           SizedBox(width: 8),
-                                          Text('Laporkan Pengguna',
-                                              style:
-                                                  TextStyle(fontSize: 13)),
+                                          Text(
+                                            'Laporkan Pengguna',
+                                            style: TextStyle(fontSize: 13),
+                                          ),
                                         ],
                                       ),
                                     ),

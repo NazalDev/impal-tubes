@@ -142,7 +142,6 @@ class EventBloc extends Bloc<EventBlocEvent, EventBlocState> {
       emit(EventCreated());
     } catch (e) {
       emit(EventCreateError(_parseError(e)));
-      print(e);
     }
   }
 
