@@ -40,6 +40,5 @@ Rancangan UI aplikasi yang berfokus pada pengalaman pengguna.
 
 ## 📂 Cara Instalasi
 
-1. `git clone [url-repo]`
-2. `npm install` (atau sesuaikan dengan environment)
-3. `npm run dev`
+1. `download app-release.apk pada `
+2. `install apk pada device mobile`
