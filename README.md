@@ -8,12 +8,12 @@
 
 ### DFD Level 0
 
-![DFD Level 0](https://github.com/NazalDev/impal-tubes/blob/2630f202d1fac0b8b4b7b754adfba43c68833092/DFD%200.drawio.png)
+![DFD Level 0](src/image/others/DFD_lvl_0.png)
 _Diagram Konteks yang menunjukkan aliran data global._
 
 ### DFD Level 1
 
-![DFD Level 1](https://github.com/NazalDev/impal-tubes/blob/2630f202d1fac0b8b4b7b754adfba43c68833092/DFD%201.drawio.png)
+![DFD Level 1](src/image/others/DFD_lvl_1.png)
 _Detail proses bisnis dan integrasi database._
 
 ---
