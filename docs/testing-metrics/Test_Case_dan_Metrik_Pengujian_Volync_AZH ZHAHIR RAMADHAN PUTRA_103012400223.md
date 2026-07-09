@@ -3,7 +3,7 @@
 *Modul: Login, Register, dan Kalender \- Aplikasi Volync*
 
 Metode Pengujian: Black-Box Testing  
-**AZH ZHAHI RAMADHAN PUTRA**  
+**AZH ZHAHIR RAMADHAN PUTRA**  
 **103012400223**  
 **IF-48-GABUP.02**
 
